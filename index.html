@@ -3004,6 +3004,101 @@ body.demo .demo-ldr-pct {
   font-variant-numeric: tabular-nums;
 }
 
+/* ── NO WEBGL ────────────────────────────────────────────────────────────
+   The walkthrough cannot draw itself. Shown by demo-webgl-check.js, which
+   runs before the libraries and stays listening for a lost context.
+
+   It lives HERE rather than in the driver's runtime stylesheet because the
+   driver sits below four megabytes of libraries that assume a GL context —
+   in the failure this exists for, it may never execute. Everything below is
+   therefore expressed in the APPLICATION's own tokens (--bg-1, --text-*,
+   --brand-blue), which are in the document's stylesheet from first paint,
+   and never in the driver's --demo-* tokens, which would resolve to nothing
+   exactly when they are needed. */
+body.demo .demo-nogl {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;              /* over the loader's 999 and the pinned shell */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(24px, 6vw, 96px);
+  background: var(--bg-1);    /* opaque: it covers a half-built application */
+  /* Every direct child of body.demo is inert by design. This panel and its
+     one link are the deliberate exception, the same one .demo-cta makes. */
+  pointer-events: auto !important;
+  -webkit-user-select: text;
+  user-select: text;
+}
+body.demo .demo-nogl-inner { width: min(58ch, 100%); }
+
+/* The lockup the header and the loader both carry. A piece that cannot draw
+   itself should still say what it is and whose it is. */
+body.demo .demo-nogl-lockup {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  color: var(--text-1);
+  margin-bottom: clamp(28px, 6vh, 52px);
+}
+
+body.demo .demo-nogl-head {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  font-size: clamp(24px, min(3.4vw, 5vh), 44px);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--text-1);
+  margin: 0 0 clamp(14px, 2.4vh, 22px);
+}
+body.demo .demo-nogl-body,
+body.demo .demo-nogl-fix {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: clamp(13.5px, min(1.15vw, 1.95vh), 16px);
+  line-height: 1.55;
+  margin: 0 0 12px;
+  max-width: 52ch;
+}
+body.demo .demo-nogl-body { color: var(--text-2); }
+body.demo .demo-nogl-fix  { color: var(--text-3); }
+
+/* Same treatment as the walkthrough's own call to action, minus the reveal
+   transition — there is no scroll here to reveal it. */
+body.demo .demo-nogl-cta {
+  display: inline-flex;
+  align-items: center;
+  margin-top: clamp(18px, 3vh, 30px);
+  padding: 12px 22px;
+  border-radius: 999px;
+  background: var(--brand-blue);
+  color: #fff;
+  text-decoration: none;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 18px rgba(var(--brand-rgb), 0.28);
+  transition: background 0.2s ease;
+  pointer-events: auto !important;
+}
+body.demo .demo-nogl-cta:hover { background: var(--brand-blue-2); }
+
+/* Which of the two failures happened. Small and low-contrast: it is for
+   whoever is asked to look into it, not for the reader. */
+body.demo .demo-nogl-reason {
+  margin-top: clamp(28px, 6vh, 52px);
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
 </style>
 </head>
 <body class="demo">
@@ -3071,6 +3166,136 @@ body.demo .demo-ldr-pct {
 
 </script>
 <script>
+/* ==== demo webgl preflight ==== */
+/* DEMO WEBGL PREFLIGHT — injected before the loader, and therefore before the
+ * four megabytes of libraries that assume a GL context exists.
+ *
+ * WHY THIS EXISTS: on 2026-08-31 the published page came up blank on the
+ * author's own machine — a capable GTX 1660 Ti, a healthy driver, WebGL
+ * reported as hardware accelerated. Chrome had simply lost the context and,
+ * because Windows applies the `exit_on_context_lost` workaround, its GPU
+ * process exited rather than recovering. What the viewer got was a white
+ * screen and `Uncaught Error: Error creating WebGL context` in a corner.
+ *
+ * A portfolio piece cannot fail that way. The recipient does not open devtools
+ * or try a second browser — they close the tab, and the piece has said nothing
+ * at all: not what it is, not who made it, not how to reach him.
+ *
+ * TWO FAILURES, NOT ONE. Testing for a context at boot catches only the first:
+ *
+ *   1. the context is never created  — no GPU, acceleration off, blocklisted
+ *   2. the context is created, then LOST — GPU process dies mid-run
+ *
+ * The observed failure was the second, and a boot-time probe passes straight
+ * through it. So this also listens for `webglcontextlost` for the life of the
+ * page. That listener is on `window` in the CAPTURE phase deliberately: the
+ * event is dispatched on a canvas the application has not created yet and does
+ * not bubble, and capture reaches a descendant target through its ancestors
+ * regardless.
+ *
+ * It covers rather than prevents. Stopping the application from booting would
+ * mean editing product source, which DECISIONS.md forbids; the panel simply
+ * sits above the wreckage on an opaque ground.
+ */
+(function () {
+  'use strict';
+
+  var CONTACT_HREF  = 'https://www.linkedin.com/in/shamil-rahman-628a2b1b9/';
+  var CONTACT_LABEL = 'Let’s talk';
+
+  var shown = false;
+
+  /* The canvas the probe below tests on, kept so the lost-context listener can
+     tell the probe's own teardown from a real failure. See the listener. */
+  var probe = null;
+
+  function haveWebGL() {
+    try {
+      var c = probe = document.createElement('canvas');
+      /* THREE prefers webgl2 and falls back to webgl1, so accept either —
+         refusing on webgl2 alone would reject machines the demo runs on. */
+      var gl = c.getContext('webgl2') ||
+               c.getContext('webgl') ||
+               c.getContext('experimental-webgl');
+      if (!gl) return false;
+      /* A context object that cannot report its own parameters is a stub, and
+         the application will fail on it exactly as if there were none. */
+      if (typeof gl.getParameter !== 'function') return false;
+      gl.getParameter(gl.VERSION);
+      /* Hand it back rather than leaving a live context in the pool — the
+         limit is per browser, and this page needs the slot. */
+      var lose = gl.getExtension('WEBGL_lose_context');
+      if (lose) lose.loseContext();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function show(reason) {
+    if (shown) return;
+    shown = true;
+
+    /* Read by demo-loader.js, which runs immediately after this and would
+       otherwise spend three loops counting up to a walkthrough that is never
+       going to start. */
+    window.__demoNoGL = true;
+
+    var ldr = document.getElementById('appLoader');
+    if (ldr) { ldr.classList.add('done'); ldr.style.display = 'none'; }
+
+    var el = document.createElement('div');
+    el.className = 'demo-nogl';
+    el.setAttribute('role', 'alert');
+
+    /* The same lockup the header and the loader carry — product name, then
+       authorship in the system's own label treatment. A portfolio piece that
+       cannot draw itself should still say whose it is. */
+    el.innerHTML =
+      '<div class="demo-nogl-inner">' +
+        '<div class="demo-nogl-lockup">build.ost ' +
+          '<span class="demo-by">by SHAMIL RAHMAN</span></div>' +
+        '<h1 class="demo-nogl-head">A real-time 3D interface for the shuttles ' +
+          'and lifts of an ASRS.</h1>' +
+        '<p class="demo-nogl-body">This is a scroll-driven walkthrough of the ' +
+          'running application, and it needs WebGL to draw the plant. Your ' +
+          'browser did not provide it.</p>' +
+        '<p class="demo-nogl-fix">Turn on hardware acceleration in your ' +
+          'browser settings, or open this page in a different browser. ' +
+          'Screen-capture and colour-picker extensions can also take the ' +
+          'context this page needs.</p>' +
+        '<a class="demo-nogl-cta" href="' + CONTACT_HREF + '">' +
+          CONTACT_LABEL + '</a>' +
+        '<div class="demo-nogl-reason">' + reason + '</div>' +
+      '</div>';
+
+    var mount = function () { (document.body || document.documentElement).appendChild(el); };
+    if (document.body) mount();
+    else document.addEventListener('DOMContentLoaded', mount);
+  }
+
+  if (!haveWebGL()) {
+    show('WebGL unavailable');
+    return;
+  }
+
+  /* Created fine — but it can still go away. This is the case that actually
+     happened, and the one a boot-time probe cannot see.
+
+     THE PROBE MUST BE EXCLUDED. haveWebGL() releases its context with
+     WEBGL_lose_context.loseContext(), and Chrome dispatches the resulting
+     `webglcontextlost` asynchronously — after this listener is attached. Without
+     the target test, the probe's own tidying-up would trip the fallback on a
+     machine where WebGL works perfectly, which is a far worse failure than the
+     one this file exists to handle. */
+  window.addEventListener('webglcontextlost', function (e) {
+    if (e.target === probe) return;
+    show('WebGL context lost');
+  }, true);
+}());
+
+</script>
+<script>
 /* ==== demo loader ==== */
 /* DEMO LOADER — injected immediately after the application's loader markup,
  * before the libraries, so the readout exists from the first paint.
@@ -3122,6 +3347,11 @@ body.demo .demo-ldr-pct {
     for (var i = 0; i < EV.length; i++)
       window.addEventListener(EV[i], seen, { capture: true, passive: true });
   }());
+
+  /* The WebGL preflight runs immediately before this and has already taken the
+     screen. There is no walkthrough to load, so counting to 100% would be a
+     lie told over the top of the explanation. */
+  if (window.__demoNoGL) return;
 
   /* Rewritten by build-demo.mjs when the loader is muted. The scroll reset
      above still runs either way — that is not part of the loader, it just has
