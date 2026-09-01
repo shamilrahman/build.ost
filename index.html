@@ -3039,14 +3039,51 @@ html.demo-mobile .demo-copy {
   position: fixed;
   left: 0; right: 0; bottom: 0; top: auto;
   width: auto;
-  max-height: 52svh;
+  /* THE CARD NEVER TAKES MORE THAN 45% OF THE SCREEN, AND TAKES LESS WHEN IT
+     CAN. It is content-sized with a cap, not a fixed band: a short beat — 02
+     runs a couple of lines — gives its unused height straight back to the
+     picture instead of holding an empty reserve. The plant is the subject; the
+     narration is a caption on it. */
+  max-height: 45svh;
   padding: 20px clamp(16px, 5vw, 26px) 54px;
-  overflow: hidden;
+
+  /* CONTENT ANCHORED TO THE BOTTOM, and this is not cosmetic.
+     The card is pinned `bottom:0` and capped, so its content flowed DOWN from
+     the box's top edge — and a beat whose copy exceeds the cap pushed the
+     overflow off the bottom of the screen. On beat 12 that was the contact
+     link: the one thing on the whole page a reader can act on, gone, on the
+     closing beat, on the device most likely to be used to read it.
+
+     Ending the flex column puts the last child against the card's bottom and
+     sends any excess UPWARD instead — into the scrim, which is exactly where
+     it stays legible. The CTA cannot leave the screen. */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+
+  /* NO `overflow:hidden` HERE, AND THAT IS DELIBERATE.
+     It was clipping the scrim. The gradient lives on `::before` with
+     `inset:-34svh 0 0 0` — most of it is ABOVE this box, which is the whole
+     point of a long fade — and `overflow:hidden` on the parent threw that part
+     away, so the gradient began abruptly at the card's top edge and read as a
+     drawn line across the plant.
+
+     It is safe to drop because the paragraph standdown below fixed the actual
+     overflow: with a panel open the copy no longer exceeds the cap on any beat
+     (measured). If a future beat does overflow it will now spill visibly rather
+     than be silently cut — which is the better failure, and the probe still
+     catches it via scrollHeight vs clientHeight either way. */
   /* The rail and index are laid out against the viewport, and the card now
      owns the bottom of it. Room is made for the index below. */
 }
+/* One step down from where the re-cut first put it. The head is the tallest
+   block in the card and every pixel it gives back is a pixel the plant or a
+   panel keeps — and at 390px the previous size was running three lines on most
+   beats. ONE VALUE FOR EVERY BEAT: the piece reads as a sequence, and a heading
+   that changes scale between beats reads as a fault rather than as emphasis. */
 html.demo-mobile .demo-head {
-  font-size: clamp(21px, 6.4vw, 30px);
+  font-size: clamp(19px, 5.6vw, 26px);
+  line-height: 1.08;
   margin-bottom: 8px;
 }
 html.demo-mobile .demo-body,
@@ -3056,6 +3093,14 @@ html.demo-mobile .demo-kind {
   max-width: none;
 }
 html.demo-mobile .demo-kicker { margin-bottom: 8px; }
+
+/* Only the margin. `flex:none` was tried here and REMOVED THE CTA FROM THE
+   SCREEN on beat 12 — with the column overflowing its cap, letting the pill
+   keep its full intrinsic height pushed it past the bottom edge, where
+   `justify-content:flex-end` did not hold it. Measured both ways; this is the
+   one that keeps the contact link visible. Do not add flex sizing here without
+   re-shooting beat 12. */
+html.demo-mobile .demo-cta { margin-top: 14px; }
 
 /* WHEN A PANEL IS OPEN, THE PARAGRAPH STANDS DOWN — chosen, not clipped.
    Measured at 390x844: the narration wants up to 543px, a usable panel ~250px,
@@ -3082,13 +3127,98 @@ html.demo-mobile body.demo:has(.demo-panel.on:not(header)) .demo-body {
 html.demo-mobile .demo-copy::before {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  inset: -8vh 0 0 0;
   -webkit-mask-image: none;
   mask-image: none;
+
+  /* THE FADE NEEDS DISTANCE, AND IT NEEDS A CURVE.
+     It used to run `inset:-8vh` with three stops — 0.97, 0.94 at 55%, 0 at the
+     top. Two things made that read as a drawn line rather than a fade. The ramp
+     had only 8vh to travel, and on a beat where the paragraph stands down the
+     card is short, so nearly the whole 0.94 -> 0 drop happened inside about
+     60px. And a LINEAR alpha ramp is not perceptually linear: the eye finds the
+     point where the slope starts and reads it as an edge, over a busy 3D
+     background especially.
+
+     So: a much longer run, and stops that follow a smoothstep rather than a
+     straight line — slow to leave full opacity, quick through the middle, and a
+     long tail into nothing. `svh` not `vh`, so the URL bar cannot change the
+     length of the fade mid-scroll. */
+  /* FIXED TO THE VIEWPORT, NOT TO THE CARD — this is the fix for the scrim
+     visibly growing and shrinking between beats.
+
+     As `.demo-copy::before` sized by its parent, the band's top edge tracked the
+     copy's height. Every beat and every step changes how much text there is, so
+     the fade slid up and down the screen with it and read as the overlay
+     cropping back and forth. Anchoring to the viewport makes it a constant band
+     the text floats over: the picture behind the type stops moving.
+
+     `position:fixed` resolves against the viewport here because nothing between
+     this and the root carries a transform or filter — `.demo-copy` only sets
+     `isolation`, which makes a stacking context, not a containing block. The
+     render lift lives on `main`, a different subtree.
+
+     Fixing the CARD's height would also have stopped the movement, but it would
+     have cost the plant band on every beat with short copy — the card would
+     always claim its maximum. This costs nothing.
+
+     80svh: opaque enough to seat type through the tallest copy (52svh), then a
+     28svh run to nothing. The stops follow a smoothstep rather than a straight
+     line, because a linear alpha ramp reads as a drawn edge over a moving
+     background. */
+  /* BACK TO TRACKING THE CARD, because a fixed band washed the scene.
+     Anchored to the viewport at a constant 78svh it could not overextend on a
+     tall beat — but on every short one it laid ~0.9 alpha across the plant
+     band, which is the picture, and the strip above a panel is only ~20% of the
+     screen to begin with.
+
+     Tracking the card was never the real problem. The visible "cropping" was a
+     HARD edge moving, and that came from `overflow:hidden` on the parent
+     clipping the fade off — fixed above. With the fade intact and fully
+     transparent at its top, the edge that moves is invisible, so the band can
+     follow the copy and stop exactly where the copy stops.
+
+     22svh of run above the card: long enough that the ramp reads as air rather
+     than as a boundary, short enough that it never reaches the panel band. */
+  inset: -22svh 0 0 0;
   background: linear-gradient(to top,
-    rgba(var(--demo-scrim), 0.97) 0%,
-    rgba(var(--demo-scrim), 0.94) 55%,
+    rgba(var(--demo-scrim), 0.985) 0%,
+    rgba(var(--demo-scrim), 0.980) 40%,
+    rgba(var(--demo-scrim), 0.955) 55%,
+    rgba(var(--demo-scrim), 0.905) 65%,
+    rgba(var(--demo-scrim), 0.805) 73%,
+    rgba(var(--demo-scrim), 0.640) 80%,
+    rgba(var(--demo-scrim), 0.450) 86%,
+    rgba(var(--demo-scrim), 0.290) 90%,
+    rgba(var(--demo-scrim), 0.160) 94%,
+    rgba(var(--demo-scrim), 0.070) 97%,
+    rgba(var(--demo-scrim), 0.020) 99%,
     rgba(var(--demo-scrim), 0) 100%);
+}
+
+/* ── the render sits too low on a panel-free beat ───────────────────────
+   The canvas is the full viewport, so the subject composes around the middle of
+   844px — but the bottom 40% is under the narration card, which puts the plant's
+   centre at the card's top edge and leaves a third of the screen as empty sky
+   above it.
+
+   ONLY WHERE THERE IS SKY TO RECLAIM. On a beat that opens a panel, that upper
+   band is the panel's, and lifting the render would drive the plant underneath
+   it — so this is conditioned on no panel being open, the same test the
+   paragraph standdown uses.
+
+   Transformed rather than resized: the renderer sizes its drawing buffer from
+   the canvas box, and changing that box from CSS does not tell it to resize —
+   it would stretch the picture. A composited transform moves what is already
+   drawn and costs nothing per frame.
+
+   The transition matters. Without it the scene would jump the instant a panel
+   opened, and a whole-scene jump reads as a fault; at .6s it glides, on roughly
+   the same curve the panels fade in on. */
+html.demo-mobile body.demo > main {
+  transition: transform .6s cubic-bezier(.22, .8, .3, 1);
+}
+html.demo-mobile body.demo:not(:has(.demo-panel.on:not(header))) > main {
+  transform: translateY(-16svh);
 }
 
 /* ── panels: upper band, never over the narration ── */
@@ -3132,16 +3262,113 @@ html.demo-mobile body.demo #inspector-2d {
 html.demo-mobile body.demo #skuCard { top: 58px !important; z-index: 42 !important; }
 html.demo-mobile body.demo #nodeExplorer:has(~ #skuCard.on) { display: none !important; }
 
+/* ── the Connections card: operator chrome out, the feed in ──────────────
+   Beat 11 is about the live shuttle feed, and on a phone the shuttle list was
+   the part that fell off the bottom of the 34svh band — unreachable, because
+   nothing in the walkthrough is scrollable. The card was spending its height on
+   a saved-connections form (name / host / port / + Add) and an empty
+   "SAVED CONNECTIONS 0" list, which are operator tooling: the reader cannot use
+   them and the narration never mentions them.
+
+   Consistent with the rule the demo already applies to the header's Export /
+   Import / Reload cluster and the Explorer's click hints — operator tooling
+   does not appear. What stays is what the beat is about: the feed status, the
+   typed transport list the copy discusses, the button the cursor presses, and
+   the shuttles. */
+/* IDs, not classes — they are `id="cnAdd"` and so on. Written as `.cnAdd` on
+   the first pass and silently matched nothing. */
+html.demo-mobile body.demo #cnSegNote,
+html.demo-mobile body.demo #cnList,
+html.demo-mobile body.demo #cnEmpty,
+html.demo-mobile body.demo #cnAdd,
+html.demo-mobile body.demo #cnDetail,
+/* The broker hint — "Browsers speak MQTT over WebSockets, not raw TCP :1883,
+   point this at your listener". Instructions for someone wiring up a plant, and
+   the reader is not wiring up anything. */
+html.demo-mobile body.demo #lvNote {
+  display: none !important;
+}
+/* The "Saved connections" heading, orphaned once its list and form are gone.
+   Addressed by what follows it rather than by position, so inserting anything
+   above it cannot send this to the wrong label. */
+html.demo-mobile body.demo #livePopover .cn-label:has(+ #cnList) {
+  display: none !important;
+}
+
+/* The Connections controls are sized for a mouse and a desktop drawer. With the
+   operator chrome gone, the last ~105px between the reader and the shuttle rows
+   — which are what beat 11 is about — is padding on the status row, the six
+   transport buttons and the two actions. The bridge transports stay: step 3's
+   copy is specifically about them. */
+html.demo-mobile body.demo #livePopover .lv-status,
+html.demo-mobile body.demo #livePopover #lvStatus { padding-block: 7px; }
+/* PADDING ONLY — NO FONT SIZES. Setting these to 12px was LARGER than they
+   already were, so the labels wrapped to a second line and the card lost 47px
+   MORE than before the "fix" (105 -> 152). Density means taking space out, and
+   type is only density if you know what size it started at. */
+html.demo-mobile body.demo #livePopover #cnSeg button { padding-block: 7px; }
+html.demo-mobile body.demo #livePopover .lv-connect,
+html.demo-mobile body.demo #livePopover .lv-mock { padding-block: 9px; }
+html.demo-mobile body.demo #livePopover .cn-label { padding-block: 3px; }
+
+/* ── the list-shaped cards, at phone density ─────────────────────────────
+   Connections above had operator chrome to drop. These do not: they are lists
+   of rows generated at runtime, and every row is the thing the beat is about.
+   So the height comes from density instead — smaller rows, not fewer.
+
+   `padding-block` rather than `padding`, so the cards keep their horizontal
+   inset and only give up vertical space. Measured before and after with
+   `scrollHeight - clientHeight` per panel; see DECISIONS.md. */
+html.demo-mobile body.demo #detailPanel .detail-row,
+html.demo-mobile body.demo #inspector-2d .detail-row {
+  padding-block: 3px;
+  font-size: 11px;
+  line-height: 1.25;
+}
+html.demo-mobile body.demo #detailPanel .panel-title,
+html.demo-mobile body.demo #inspector-2d .li-title,
+html.demo-mobile body.demo .popover-title {
+  font-size: 10.5px;
+  padding-block: 6px;
+}
+html.demo-mobile body.demo #skuCard .sku-card-name { font-size: 15px; }
+html.demo-mobile body.demo #skuCard .sku-card-sub  { font-size: 11px; }
+html.demo-mobile body.demo #skuCard .sku-card-body { padding-block: 8px; }
+
+/* The zone popover's help text tells an operator how to move a zone. The
+   reader cannot move anything — same rule that hides the Explorer's
+   "Click to select · Dbl-click to focus". */
+html.demo-mobile body.demo #zonesPopover .zone-help { display: none !important; }
+
 /* ── rail and index ── */
 /* The cue is a scroll invitation and the hero is the only place it is needed;
    below that it competes with the copy band for the same corner. */
 html.demo-mobile #demoRail { left: 16px; bottom: auto; top: 62px; }
 html.demo-mobile #demoCue { display: none; }
 html.demo-mobile body.demo.at-hero #demoCue { display: flex; }
+/* THIRTEEN NUMBERS BECOME ONE.
+   On desktop the full run `00 01 … 12` is a map: it shows how long the piece is
+   and how far in you are, and there is room along the bottom edge for it. At
+   390px it is thirteen items competing for the width of the screen, in a band
+   the narration card also wants — a lot of pixels spent on twelve numbers the
+   reader is not currently at.
+
+   So the reader is told where they are, not where they could be. The active
+   number alone, in the bottom-right corner, out of the copy's way. Everything
+   else stays in the DOM and keeps its `.on` class, so nothing about how the
+   driver tracks the beat changes — this is presentation only. */
 html.demo-mobile #demoIndex {
+  left: auto;
+  right: clamp(14px, 4vw, 22px);
   bottom: 14px;
-  gap: 4px;
-  font-size: 8.5px;
+  transform: none;
+  gap: 0;
+}
+html.demo-mobile #demoIndex span { display: none; }
+html.demo-mobile #demoIndex span.on {
+  display: inline;
+  font-size: 12px;
+  letter-spacing: 0.08em;
 }
 
 /* The cursor is a pointer metaphor. There is no pointer on a phone, and a ring
