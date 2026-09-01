@@ -2805,7 +2805,13 @@ body.demo #toast { display: none !important; }
    Found by enumerating every element crossing the band under the header, after
    three attempts to name it from the CSS were wrong. */
 body.demo #viewControls2d,
-body.demo #view2dBar { display: none !important; }
+body.demo #view2dBar,
+/* `#coords-display` — "X 0.00 m · Z 0.00 m", the 2D viewport's cursor readout.
+   It tracks a pointer the walkthrough does not have, so it reads 0.00 forever,
+   and on a phone it sat in the bottom-left corner directly on the slider. Same
+   family as the two above and missed for the same reason: it is the viewport's
+   own chrome rather than one of the panels the demo tags. */
+body.demo #coords-display { display: none !important; }
 
 /* Every piece of chrome starts hidden, addressed by its own selector because
    the driver has not run yet and nothing is tagged. Opacity rather than
@@ -3204,29 +3210,20 @@ html.demo-mobile body.demo:not(.mob-card) .demo-panel:not(header) {
    was already read in full at step 0. The kicker keeps the reader located
    ("03 — READING A LOCATION") and `.demo-kind` says what this step is showing.
    On a card moment the changing line is the only text worth its space. */
-html.demo-mobile body.demo.mob-card .demo-body,
-html.demo-mobile body.demo.mob-card .demo-head {
-  display: none;
+/* ON A CARD MOMENT THE NARRATION STANDS DOWN ENTIRELY — never both at once.
+   Sharing the lower half between a card and a heading meant each got about
+   128px on a 674px phone, and every card lost content off its bottom edge:
+   skuCard 386px, detailPanel 244px, the Explorer more. Alternating properly
+   hands the card all 257px, which is roughly double, and the losses go with it.
+
+   The reader is not left without narration. Step 0 of every beat is a text
+   moment and states the claim in full; the card moments that follow are the
+   evidence for it, and the card is itself the thing that changes from step to
+   step. The beat number stays on screen throughout. */
+html.demo-mobile body.demo.mob-card .demo-copy {
+  display: none !important;
 }
 
-/* On a card moment the lower half is the card's: it runs 55svh..87svh and the
-   narration keeps the 13svh beneath — enough for the kicker and a two-line
-   heading. On a text moment the card is gone and the narration keeps all 45svh.
-   Bottom-anchored either way, so the CTA stays against the lower edge. */
-html.demo-mobile body.demo.mob-card .demo-copy {
-  /* 15svh, and the padding comes down with it. The card's 74px of vertical
-     padding is composed for a full narration; inside a 13svh box it left 36px
-     for a kicker and a two-line heading, so the heading overflowed UPWARD —
-     bottom-anchored content spills up — and drew straight over the card, which
-     sits below it in the stacking order. Sized against the content that is
-     actually left on a card moment. */
-  /* The bottom half is 45dvh (55→100). The card and this share it and must not
-     overlap, so card 25 + copy 20 = 45 exactly: the card runs 55→80dvh and the
-     text starts at 80dvh. 20dvh holds the kicker and a three-line step note. */
-  max-height: 19dvh;
-  padding-top: 8px;
-  padding-bottom: 20px;
-}
 
 /* THE BLUR PLATE COMES OFF. DECISIONS.md calls it the single most expensive
    thing the demo layer adds — a backdrop-filter over a canvas that repaints
@@ -3435,7 +3432,10 @@ html.demo-mobile body.demo #inspector-2d {
      it takes most of it. The remaining 15svh is the heading's, and 30+15 must
      leave the card's bottom edge ABOVE the heading's top: 55+30 = 85svh, and
      the heading starts at 85svh. They meet exactly and never overlap. */
-  max-height: 19dvh !important;
+  /* The whole lower half now, less the slider band — the narration is gone
+     on a card moment, so nothing competes for it. calc, not a dvh fraction,
+     because the slider is a fixed 46px at every viewport size. */
+  max-height: calc(45dvh - 46px) !important;
   overflow: hidden !important;
   transform: none !important;
 }
@@ -3558,7 +3558,7 @@ html.demo-mobile #demoSlider {
    positioned against it. */
 html.demo-mobile #demoSlider .ds-rail {
   position: absolute;
-  left: clamp(16px, 5vw, 26px); right: clamp(16px, 5vw, 26px);
+  left: clamp(16px, 5vw, 26px); right: 54px;   /* clears the beat number */
   top: 50%;
   height: 2px;
   margin-top: -1px;
@@ -3577,22 +3577,54 @@ html.demo-mobile #demoSlider .ds-fill {
    legible without printing thirteen numbers. */
 html.demo-mobile #demoSlider .ds-ticks {
   position: absolute;
-  left: clamp(16px, 5vw, 26px); right: clamp(16px, 5vw, 26px);
+  left: clamp(16px, 5vw, 26px); right: 54px;
   top: 50%;
   height: 0;
 }
+/* DOTS, NOT LINES. A 1px rule reads as a ruler graduation — a measurement of
+   how far along you are. A dot reads as a place you can go, which is what these
+   are: one per beat, thirteen destinations. */
 html.demo-mobile #demoSlider .ds-tick {
   position: absolute;
-  width: 1px;
+  width: 5px;
   height: 5px;
   margin-top: -2.5px;
-  background: rgba(var(--brand-rgb), 0.22);
-  transform: translateX(-0.5px);
+  border-radius: 50%;
+  background: rgba(var(--brand-rgb), 0.30);
+  transform: translateX(-2.5px);
 }
-html.demo-mobile #demoSlider .ds-tick-beat {
-  height: 9px;
-  margin-top: -4.5px;
-  background: rgba(var(--brand-rgb), 0.38);
+
+/* ── the slide cue ────────────────────────────────────────────────────────
+   Shown only at the very start, and only until the reader moves. The desktop
+   has "Scroll to walk the plant" for the same reason: on a page with no visible
+   scrollbar and one screen of content, nothing otherwise says there is more. */
+html.demo-mobile #demoSlider .ds-cue {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 100%;
+  margin-bottom: 2px;
+  text-align: center;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .5s ease;
+}
+html.demo-mobile #demoSlider.ds-hint .ds-cue { opacity: 1; }
+html.demo-mobile #demoSlider .ds-cue span {
+  display: inline-block;
+  animation: ds-nudge 1.8s ease-in-out infinite;
+}
+@keyframes ds-nudge {
+  0%, 100% { transform: translateX(-3px); opacity: .55; }
+  50%      { transform: translateX(3px);  opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.demo-mobile #demoSlider .ds-cue span { animation: none; opacity: .9; }
 }
 
 html.demo-mobile #demoSlider .ds-thumb {
@@ -3645,15 +3677,29 @@ html.demo-mobile #demoSlider .ds-input::-moz-range-thumb {
    19 + 19 leaves the card's bottom edge just clear of the text's top. */
 html.demo-mobile .demo-copy {
   bottom: 46px;
-  max-height: 38dvh;
+  max-height: calc(45dvh - 46px);
   padding-top: 10px;
-  padding-bottom: 22px;              /* clears the beat number, which sits at 54 */
+  /* 34px, measured rather than guessed. The beat number sits at bottom:54 and
+     is 18px tall, so it occupies 602..620 while the card ends at 628 — at 22px
+     of padding the last line of copy ran to 606 and the sweep reported a real
+     collision on all 38 states, plus the CTA reaching the number on beat 12.
+     34px puts the copy's floor at 594 and leaves 8px of air. */
+  padding-bottom: 34px;
 }
 /* `body.demo` in the selector is load-bearing: the existing index rule further
    down this file is also `html.demo-mobile #demoIndex`, identical specificity,
    and later in source order — so without the extra class it wins and the beat
    number sits on the rail. */
-html.demo-mobile body.demo #demoIndex { bottom: 54px; }
+/* Reparented into the slider by demo-slider.js — see the note there. Placed
+   against the rail rather than the screen edge, so it reads as the slider's
+   own readout. */
+html.demo-mobile body.demo #demoSlider #demoIndex {
+  position: absolute;
+  left: auto; right: clamp(16px, 5vw, 26px);
+  bottom: auto; top: 50%;
+  transform: translateY(-50%);
+  gap: 0;
+}
 
 /* ── rail and index ── */
 /* The cue is a scroll invitation and the hero is the only place it is needed;
@@ -25510,18 +25556,29 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
     fill.className = 'ds-fill';
     rail.appendChild(fill);
 
-    /* One mark per state. The first slot of a beat gets a taller one, so the
-       thirteen chapters read at a glance without printing thirteen numbers. */
-    var ticks = document.createElement('div');
-    ticks.className = 'ds-ticks';
+    /* ONE MARK PER BEAT, NOT PER STATE. Thirty-eight ticks across 380px is one
+       every 10px — too fine to aim a thumb at, and it read as a ruler rather
+       than as a set of places to go. The thirteen beats are the piece's actual
+       chapters; the states between them are steps within a chapter and the
+       reader does not navigate to them by name.
+
+       `marks` keeps only each beat's first slot, and holds the slot list so the
+       resize handler can recompute positions without rebuilding the DOM. */
+    var marks = [];
     var lastBeat = -1;
     D.slots.forEach(function (sl) {
-      var t = document.createElement('i');
-      t.className = 'ds-tick' + (sl.b !== lastBeat ? ' ds-tick-beat' : '');
+      if (sl.b === lastBeat) return;
       lastBeat = sl.b;
+      marks.push(sl);
+    });
+
+    var ticks = document.createElement('div');
+    ticks.className = 'ds-ticks';
+    marks.forEach(function (sl) {
+      var t = document.createElement('i');
+      t.className = 'ds-tick ds-tick-beat';
       var y = Math.min(sl.y * unit(), maxScroll());
       t.style.left = (100 * y / maxScroll()).toFixed(3) + '%';
-      t.dataset.y = String(y);
       ticks.appendChild(t);
     });
 
@@ -25537,11 +25594,45 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
     input.className = 'ds-input';
     input.setAttribute('aria-label', 'Walkthrough position');
 
+    /* THE SLIDE CUE. A phone shows no scrollbar and the first beat is one
+       screen of picture with no visible affordance — nothing says the piece
+       continues. The desktop carries "Scroll to walk the plant" for exactly
+       this reason; this is its equivalent, and it goes away the moment the
+       reader does anything, because a hint that outstays its welcome is
+       clutter. */
+    var cue = document.createElement('div');
+    cue.className = 'ds-cue';
+    cue.innerHTML = '<span>Slide to walk the plant &rarr;</span>';
+
     wrap.appendChild(rail);
     wrap.appendChild(ticks);
     wrap.appendChild(thumb);
+    wrap.appendChild(cue);
     wrap.appendChild(input);
     document.body.appendChild(wrap);
+
+    /* THE BEAT NUMBER MOVES INTO THE SLIDER BAND.
+       It used to float at the bottom-right of the content. Now that a card
+       occupies the whole lower half, that put it ON the card — the sweep caught
+       it against detailPanel, skuCard, livePopover, inspector-2d and
+       taskCreator. The slider band is the one strip nothing else claims, and
+       the number belongs next to the position control anyway: both answer
+       "where am I".
+
+       Reparented rather than repositioned, so it moves with the band and can
+       never be compared against it as a separate surface. */
+    var idx = document.getElementById('demoIndex');
+    if (idx) wrap.appendChild(idx);
+
+    /* Shown only while parked at the very start. Removed on the first real
+       move — by thumb or by scroll — and never shown again. */
+    var hinted = false;
+    function hint(on) {
+      if (hinted && on) return;
+      wrap.classList.toggle('ds-hint', !!on);
+      if (!on) hinted = true;
+    }
+    hint(true);
 
     /* ── slider -> scroll ───────────────────────────────────────────────── */
     var dragging = false;
@@ -25563,7 +25654,7 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
     }
 
     input.addEventListener('input', fromInput);
-    input.addEventListener('pointerdown', function () { dragging = true; });
+    input.addEventListener('pointerdown', function () { dragging = true; hint(false); });
     /* pointerup can land outside the element after a drag, so listen wide. */
     window.addEventListener('pointerup', function () { dragging = false; }, true);
     window.addEventListener('pointercancel', function () { dragging = false; }, true);
@@ -25576,6 +25667,12 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
       var frac = Math.max(0, Math.min(1, window.scrollY / maxScroll()));
       input.value = String(Math.round(frac * RES));
       paint(frac);
+      /* THE HERO IS NOT AT SCROLL 0. Slot positions are (n + 0.5) screens, so
+         the first state sits half a screen down and a quarter-screen threshold
+         dismissed the cue before it had ever been seen. The cue belongs to the
+         first beat: it goes when the reader reaches the second. */
+      if (marks.length > 1 && window.scrollY > marks[1].y * unit() * 0.9)
+        hint(false);
     }
     window.addEventListener('scroll', function () {
       if (!raf) raf = requestAnimationFrame(sync);
@@ -25586,7 +25683,10 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
     window.addEventListener('resize', function () {
       var m = maxScroll();
       [].forEach.call(ticks.children, function (t, i) {
-        var y = Math.min(D.slots[i].y * unit(), m);
+        /* `marks`, not `D.slots` — the ticks are one per beat now, so indexing
+           the full slot table here would put every mark in the wrong place
+           after a rotation. */
+        var y = Math.min(marks[i].y * unit(), m);
         t.style.left = (100 * y / m).toFixed(3) + '%';
       });
       sync();
