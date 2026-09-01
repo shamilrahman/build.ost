@@ -3022,6 +3022,24 @@ body.demo .demo-ldr-pct {
   font-variant-numeric: tabular-nums;
 }
 
+/* THE PHONE NOTE — off everywhere except a phone.
+   Written into the loader unconditionally by demo-loader.js and revealed only
+   under `html.demo-mobile`, because the flag that JS would test does not exist
+   yet at loader time (demo-mobile.js is injected with the application, which
+   runs later). Sized against the readout above it rather than the lockup: it is
+   a footnote to the loader, not a second headline. */
+body.demo .demo-ldr-note { display: none; }
+html.demo-mobile body.demo .demo-ldr-note {
+  display: block;
+  width: min(420px, 72vw);
+  margin-top: 18px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 11.5px;
+  line-height: 1.5;
+  text-align: left;
+  color: var(--text-3);
+}
+
 /* ── PORTRAIT RE-CUT ─────────────────────────────────────────────────────
    The desktop composition is landscape by construction: copy in the left 42vw,
    plant in the remaining frame. Portrait has no left and right, and measuring
@@ -3938,6 +3956,23 @@ body.demo .demo-nogl-reason {
     el.firstElementChild ? el.firstElementChild.appendChild(myTrack) : el.appendChild(myTrack);
     el.firstElementChild ? el.firstElementChild.appendChild(meta) : el.appendChild(meta);
   }
+
+  /* ── the phone note ──────────────────────────────────────────────────
+     Added at the user's request 2026-09-01. DECISIONS.md marks the loader
+     FINISHED, so this is a deliberate exception rather than drift: it adds a
+     line under the readout and changes nothing about the three loops, the
+     percentage or the dismissal.
+
+     Written unconditionally and gated in CSS on `html.demo-mobile`, NOT on
+     `window.__demoMobile`. The flag is set by demo-mobile.js, which the build
+     injects into the application block — that runs after this file, so the flag
+     does not exist yet here. The class arrives a moment later, well inside the
+     loader's fifteen-second hold, which is the whole time this is on screen. */
+  var note = document.createElement('div');
+  note.className = 'demo-ldr-note';
+  note.textContent = 'Composed for a wide screen. This is the phone re-cut — ' +
+                     'open it on a desktop for the full frame.';
+  if (meta.parentNode) meta.parentNode.insertBefore(note, meta.nextSibling);
 
   var bar  = document.getElementById('demoLdrBar');
   var pct  = document.getElementById('demoLdrPct');
