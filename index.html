@@ -3057,8 +3057,10 @@ html.demo-mobile .demo-copy {
      runs to 55svh: the card starts where the blend ends. It is still
      content-sized under that cap, so a short beat gives its unused height back
      to the picture rather than holding an empty reserve. */
-  max-height: 45svh;
-  padding: 20px clamp(16px, 5vw, 26px) 54px;
+  max-height: 45dvh;
+  /* 12/38, not 20/54. On a 674px phone 45dvh is ~303px and the old padding
+     took a quarter of it. 38px at the foot still clears the beat index. */
+  padding: 12px clamp(16px, 5vw, 26px) 38px;
 
   /* CONTENT ANCHORED TO THE BOTTOM, and this is not cosmetic.
      The card is pinned `bottom:0` and capped, so its content flowed DOWN from
@@ -3095,14 +3097,16 @@ html.demo-mobile .demo-copy {
    beats. ONE VALUE FOR EVERY BEAT: the piece reads as a sequence, and a heading
    that changes scale between beats reads as a fault rather than as emphasis. */
 html.demo-mobile .demo-head {
-  font-size: clamp(19px, 5.6vw, 26px);
-  line-height: 1.08;
+  font-size: clamp(18px, 5.2vw, 24px);
+  line-height: 1.05;
   margin-bottom: 8px;
 }
+/* 12.5/1.38, down from 13/1.45. The hero runs eleven lines of body on a
+   412px screen; at the old metrics that alone was 209px of a 303px box. */
 html.demo-mobile .demo-body,
 html.demo-mobile .demo-kind {
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 12.5px;
+  line-height: 1.38;
   max-width: none;
 }
 html.demo-mobile .demo-kicker { margin-bottom: 8px; }
@@ -3113,7 +3117,17 @@ html.demo-mobile .demo-kicker { margin-bottom: 8px; }
    `justify-content:flex-end` did not hold it. Measured both ways; this is the
    one that keeps the contact link visible. Do not add flex sizing here without
    re-shooting beat 12. */
+/* AN INVISIBLE BUTTON MUST NOT HOLD HEIGHT.
+   The CTA ships `opacity:0` until its beat and is only ever shown on 12 — but
+   it is a flex item in the copy column on every beat, so it was reserving
+   ~50px of a 300px budget throughout. That is a sixth of the narration's space
+   held by something nobody can see, and it was the largest single contributor
+   to the copy overflowing its cap and climbing over the picture.
+
+   `display:none` until `.on`, which is the class the driver already toggles.
+   Not `visibility`, which would keep the box. */
 html.demo-mobile .demo-cta { margin-top: 14px; }
+html.demo-mobile .demo-cta:not(.on) { display: none !important; }
 
 /* WHEN A PANEL IS OPEN, THE PARAGRAPH STANDS DOWN — chosen, not clipped.
    Measured at 390x844: the narration wants up to 543px, a usable panel ~250px,
@@ -3143,8 +3157,19 @@ html.demo-mobile body.demo:not(.mob-card) .demo-panel:not(header) {
    heading. The body has already been read at step 0; the per-step line goes
    too, because at this size it is the difference between the card showing its
    rows and not. */
+/* THE PER-STEP LINE STAYS. HIDING IT WAS A MISTAKE.
+   It was cut alongside the body to buy height, and that made every step in a
+   beat read identically: beat 03 walks an empty cell, then a filled one, then a
+   vehicle — four different moments under one unchanging heading, with only the
+   panel's contents quietly differing. The report was "all around looks static",
+   and it was exactly right.
+
+   What goes instead is the HEADING, which is constant for the whole beat and
+   was already read in full at step 0. The kicker keeps the reader located
+   ("03 — READING A LOCATION") and `.demo-kind` says what this step is showing.
+   On a card moment the changing line is the only text worth its space. */
 html.demo-mobile body.demo.mob-card .demo-body,
-html.demo-mobile body.demo.mob-card .demo-kind {
+html.demo-mobile body.demo.mob-card .demo-head {
   display: none;
 }
 
@@ -3159,7 +3184,10 @@ html.demo-mobile body.demo.mob-card .demo-copy {
      bottom-anchored content spills up — and drew straight over the card, which
      sits below it in the stacking order. Sized against the content that is
      actually left on a card moment. */
-  max-height: 15svh;
+  /* The bottom half is 45dvh (55→100). The card and this share it and must not
+     overlap, so card 25 + copy 20 = 45 exactly: the card runs 55→80dvh and the
+     text starts at 80dvh. 20dvh holds the kicker and a three-line step note. */
+  max-height: 20dvh;
   padding-top: 6px;
   padding-bottom: 30px;
 }
@@ -3292,7 +3320,7 @@ html.demo-mobile .demo-copy::before {
    the lift belongs on them. The panels are their siblings and stay put. */
 html.demo-mobile body.demo #canvas,
 html.demo-mobile body.demo #viewport-2d > svg {
-  transform: translateY(-23svh);
+  transform: translateY(-23dvh);
 }
 
 /* ── THE BLEND BAND ─────────────────────────────────────────────────────
@@ -3313,7 +3341,7 @@ html.demo-mobile body.demo > main::after {
   content: ;
   position: fixed;
   left: 0; right: 0; bottom: 0;
-  height: 55svh;
+  height: 55dvh;
   z-index: 1;
   pointer-events: none;
   background: linear-gradient(to top,
@@ -3365,13 +3393,13 @@ html.demo-mobile body.demo #inspector-2d {
      as a split. 55svh is where the blend ends, so a card begins exactly at the
      first fully-opaque row and never intrudes on the scene.
      22svh leaves 23svh beneath it for the narration. */
-  top: 55svh !important;
+  top: 55dvh !important;
   bottom: auto !important;
   /* 30svh — the card no longer shares the lower half with a full narration, so
      it takes most of it. The remaining 15svh is the heading's, and 30+15 must
      leave the card's bottom edge ABOVE the heading's top: 55+30 = 85svh, and
      the heading starts at 85svh. They meet exactly and never overlap. */
-  max-height: 30svh !important;
+  max-height: 25dvh !important;
   overflow: hidden !important;
   transform: none !important;
 }
@@ -3382,7 +3410,7 @@ html.demo-mobile body.demo #inspector-2d {
    the stock card to 58px and kept it in the picture's half after everything
    else had moved down. Same line as its neighbours now; only the z-index, which
    is what lets it take the band from the Explorer, still has a job. */
-html.demo-mobile body.demo #skuCard { top: 55svh !important; z-index: 42 !important; }
+html.demo-mobile body.demo #skuCard { top: 55dvh !important; z-index: 42 !important; }
 html.demo-mobile body.demo #nodeExplorer:has(~ #skuCard.on) { display: none !important; }
 
 /* ── the Connections card: operator chrome out, the feed in ──────────────
@@ -3462,6 +3490,14 @@ html.demo-mobile body.demo #skuCard .sku-card-body { padding-block: 8px; }
    reader cannot move anything — same rule that hides the Explorer's
    "Click to select · Dbl-click to focus". */
 html.demo-mobile body.demo #zonesPopover .zone-help { display: none !important; }
+
+/* The 2D inspector opens with a LAYOUT block — plant name, dimensions, grid
+   size, node count. That is the same four facts on every step of beat 03, and
+   it filled the card's whole height on a phone, pushing STORAGE CELL and the
+   rest of the cell detail off the bottom. The beat is called "reading a
+   LOCATION"; the location is the part that has to be visible. The plant's
+   dimensions are already said in the narration at 01. */
+html.demo-mobile body.demo #inspector-2d #layout-info { display: none !important; }
 
 /* ── rail and index ── */
 /* The cue is a scroll invitation and the hero is the only place it is needed;
@@ -13117,7 +13153,7 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
   var canvas = document.getElementById('canvas');
   var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = !window.__demoMobile;   /* acne on mobile GPUs — see build-demo.mjs */
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
