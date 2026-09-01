@@ -3037,13 +3037,26 @@ html.demo-mobile body.demo > header .header-center { display: none !important; }
 /* ── narration: a band along the bottom, not a column down the side ── */
 html.demo-mobile .demo-copy {
   position: fixed;
-  left: 0; right: 0; bottom: 0; top: auto;
-  width: auto;
-  /* THE CARD NEVER TAKES MORE THAN 45% OF THE SCREEN, AND TAKES LESS WHEN IT
-     CAN. It is content-sized with a cap, not a fixed band: a short beat — 02
-     runs a couple of lines — gives its unused height straight back to the
-     picture instead of holding an empty reserve. The plant is the subject; the
-     narration is a caption on it. */
+  /* !important AND THE FULL SET, because the driver ships
+     `body.demo.panel-left:not(.copy-right) .demo-copy { left: calc(...) }` at
+     specificity (0,3,1) — it outranks this rule's (0,2,1) and was insetting the
+     card from the left on every beat that docks a panel. The card moved, and
+     its `::before` scrim moved with it, which is the vertical edge visible down
+     the side of the overlay on beat 01. The card must be the full width of the
+     screen on a phone, always. */
+  left: 0 !important;
+  right: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  bottom: 0; top: auto;
+  /* THE SCREEN IS HALVED. Top 50% is header and 3D and nothing else; bottom 50%
+     is the card and the text and nothing else; the two blend across 10% — 5
+     either side of the line. Every beat, including the last.
+
+     45svh, not 50svh, because the bottom half begins at 50svh and the blend
+     runs to 55svh: the card starts where the blend ends. It is still
+     content-sized under that cap, so a short beat gives its unused height back
+     to the picture rather than holding an empty reserve. */
   max-height: 45svh;
   padding: 20px clamp(16px, 5vw, 26px) 54px;
 
@@ -3119,6 +3132,13 @@ html.demo-mobile body.demo:has(.demo-panel.on:not(header)) .demo-body {
   display: none;
 }
 
+/* With a card on screen the bottom half is shared: the card takes 55svh..77svh,
+   so the narration gets the 23svh beneath it. Without one it keeps the whole
+   45svh. Bottom-anchored either way, so the CTA stays against the lower edge. */
+html.demo-mobile body.demo:has(.demo-panel.on:not(header)) .demo-copy {
+  max-height: 23svh;
+}
+
 /* THE BLUR PLATE COMES OFF. DECISIONS.md calls it the single most expensive
    thing the demo layer adds — a backdrop-filter over a canvas that repaints
    every frame, re-derived on every composited frame. On a phone that cost is
@@ -3165,33 +3185,36 @@ html.demo-mobile .demo-copy::before {
      28svh run to nothing. The stops follow a smoothstep rather than a straight
      line, because a linear alpha ramp reads as a drawn edge over a moving
      background. */
-  /* BACK TO TRACKING THE CARD, because a fixed band washed the scene.
-     Anchored to the viewport at a constant 78svh it could not overextend on a
-     tall beat — but on every short one it laid ~0.9 alpha across the plant
-     band, which is the picture, and the strip above a panel is only ~20% of the
-     screen to begin with.
+  /* THE BLEND BAND — fixed to the viewport, and the halves' only overlap.
+     55svh tall, so its top edge is exactly the 45svh line. It is flat opaque
+     from the bottom up to 45svh-from-the-bottom (82% of its own height, which
+     is the 55svh line on screen), then fades to nothing across the last 18% —
+     the 45svh..55svh band, 5% either side of the halfway line.
 
-     Tracking the card was never the real problem. The visible "cropping" was a
-     HARD edge moving, and that came from `overflow:hidden` on the parent
-     clipping the fade off — fixed above. With the fade intact and fully
-     transparent at its top, the edge that moves is invisible, so the band can
-     follow the copy and stop exactly where the copy stops.
-
-     22svh of run above the card: long enough that the ramp reads as air rather
-     than as a boundary, short enough that it never reaches the panel band. */
-  inset: -22svh 0 0 0;
+     Fixed rather than tracking the card, deliberately, and the earlier
+     objection does not apply: it cannot wash the scene because it is
+     transparent above 45svh, and the scene now lives entirely above that. The
+     card's own height no longer moves it, which is what stops the overlay
+     growing and shrinking between beats. */
+     The stops are in percentages OF THIS ELEMENT, so 82% of 55svh is the 55svh
+     line on screen and 100% is the 45svh line. Flat below, smoothstep across
+     the band — a straight alpha ramp reads as a drawn edge over a moving
+     picture. */
+  position: fixed;
+  left: 0; right: 0; bottom: 0; top: auto;
+  height: 55svh;
   background: linear-gradient(to top,
-    rgba(var(--demo-scrim), 0.985) 0%,
-    rgba(var(--demo-scrim), 0.980) 40%,
-    rgba(var(--demo-scrim), 0.955) 55%,
-    rgba(var(--demo-scrim), 0.905) 65%,
-    rgba(var(--demo-scrim), 0.805) 73%,
-    rgba(var(--demo-scrim), 0.640) 80%,
-    rgba(var(--demo-scrim), 0.450) 86%,
-    rgba(var(--demo-scrim), 0.290) 90%,
-    rgba(var(--demo-scrim), 0.160) 94%,
-    rgba(var(--demo-scrim), 0.070) 97%,
-    rgba(var(--demo-scrim), 0.020) 99%,
+    rgba(var(--demo-scrim), 0.985)  0%,
+    rgba(var(--demo-scrim), 0.985) 78%,
+    rgba(var(--demo-scrim), 0.975) 82%,
+    rgba(var(--demo-scrim), 0.940) 85%,
+    rgba(var(--demo-scrim), 0.870) 88%,
+    rgba(var(--demo-scrim), 0.750) 90.5%,
+    rgba(var(--demo-scrim), 0.590) 93%,
+    rgba(var(--demo-scrim), 0.410) 95%,
+    rgba(var(--demo-scrim), 0.245) 96.5%,
+    rgba(var(--demo-scrim), 0.120) 98%,
+    rgba(var(--demo-scrim), 0.040) 99%,
     rgba(var(--demo-scrim), 0) 100%);
 }
 
@@ -3214,11 +3237,33 @@ html.demo-mobile .demo-copy::before {
    The transition matters. Without it the scene would jump the instant a panel
    opened, and a whole-scene jump reads as a fault; at .6s it glides, on roughly
    the same curve the panels fade in on. */
-html.demo-mobile body.demo > main {
-  transition: transform .6s cubic-bezier(.22, .8, .3, 1);
-}
-html.demo-mobile body.demo:not(:has(.demo-panel.on:not(header))) > main {
-  transform: translateY(-16svh);
+/* THE RENDER IS COMPOSED FOR THE TOP HALF, ON EVERY BEAT.
+   The canvas is the full viewport, so the subject composes about the 50svh
+   line — the very line the picture now has to sit above. Lifting it a quarter
+   of the screen centres it in the top half instead.
+
+   Unconditional now, where it used to be skipped when a panel was open: the
+   panels have moved to the bottom half, so there is no longer a case where the
+   upper band belongs to something else. One transform for every beat, which is
+   also why the transition can go — nothing changes it mid-walkthrough.
+
+   Transformed rather than resized: the renderer sizes its drawing buffer from
+   the canvas box, and changing that box from CSS does not tell it to resize —
+   the picture would stretch. The strip left bare at the bottom sits under the
+   opaque half of the blend band and is never seen. */
+/* ON THE CANVAS, NEVER ON `main` — this cost a whole build to learn.
+   A `transform` makes the transformed element a containing block for
+   `position:fixed` DESCENDANTS. Every panel lives inside `main`
+   (`main > #viewport-3d > #nodeExplorer`), so transforming `main` dragged all
+   of them up by the same 23svh: cards measured at 270..456 instead of the
+   464..650 they were told to take, and #skuCard landed at -136, off the top of
+   the screen. Only #zonesPopover was right, because it lives in the header.
+
+   The canvas and the 2D plan ARE the picture and have no fixed descendants, so
+   the lift belongs on them. The panels are their siblings and stay put. */
+html.demo-mobile body.demo #canvas,
+html.demo-mobile body.demo #viewport-2d > svg {
+  transform: translateY(-23svh);
 }
 
 /* ── panels: upper band, never over the narration ── */
@@ -3250,16 +3295,25 @@ html.demo-mobile body.demo #inspector-2d {
   right: 8px !important;
   width: auto !important;
   max-width: none !important;
-  top: 58px !important;
+  /* THE CARDS BELONG TO THE BOTTOM HALF. They sat at `top:58px` — inside the
+     half reserved for the picture — which is the reason the split never read
+     as a split. 55svh is where the blend ends, so a card begins exactly at the
+     first fully-opaque row and never intrudes on the scene.
+     22svh leaves 23svh beneath it for the narration. */
+  top: 55svh !important;
   bottom: auto !important;
-  max-height: 34svh !important;
+  max-height: 22svh !important;
   overflow: hidden !important;
   transform: none !important;
 }
 /* Two panels on screen at once (beat 04 opens the Explorer and a stock card).
    Stacked, they would cover the plant entirely, so the second takes the band
    and the first steps aside rather than both fighting for the same 34svh. */
-html.demo-mobile body.demo #skuCard { top: 58px !important; z-index: 42 !important; }
+/* Left over from the first re-cut, when cards banded across the TOP — it pinned
+   the stock card to 58px and kept it in the picture's half after everything
+   else had moved down. Same line as its neighbours now; only the z-index, which
+   is what lets it take the band from the Explorer, still has a job. */
+html.demo-mobile body.demo #skuCard { top: 55svh !important; z-index: 42 !important; }
 html.demo-mobile body.demo #nodeExplorer:has(~ #skuCard.on) { display: none !important; }
 
 /* ── the Connections card: operator chrome out, the feed in ──────────────
