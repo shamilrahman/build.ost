@@ -3362,6 +3362,13 @@ html.demo-mobile .demo-copy::before {
    23dvh gave — close, which is why it looked nearly right, and wrong at every
    other viewport height because the header does not scale with the screen. */
 html.demo-mobile body.demo #canvas,
+/* `#canvas-2d-wrap`, NOT `#viewport-2d > svg`. The plan's svg is a child of the
+   wrap, so the child combinator matched nothing and the 2D beats were never
+   lifted at all — the plan stayed centred on the whole screen with its lower
+   half behind the card, which is the "2d layout is under text" the 50/50 rule
+   was supposed to have fixed. Verified by asking the page for the element's
+   parent rather than reading it off the markup: the answer was canvas-2d-wrap. */
+html.demo-mobile body.demo #canvas-2d-wrap,
 html.demo-mobile body.demo #viewport-2d > svg {
   transform: translateY(calc(-25dvh + var(--demo-header-h, 53px) / 2));
 }
@@ -3735,14 +3742,21 @@ html.demo-mobile #demoSlider .ds-input::-moz-range-thumb {
    19 + 19 leaves the card's bottom edge just clear of the text's top. */
 html.demo-mobile .demo-copy {
   bottom: 46px;
-  max-height: calc(45dvh - 46px);
-  padding-top: 10px;
-  /* 34px, measured rather than guessed. The beat number sits at bottom:54 and
-     is 18px tall, so it occupies 602..620 while the card ends at 628 — at 22px
-     of padding the last line of copy ran to 606 and the sweep reported a real
-     collision on all 38 states, plus the CTA reaching the number on beat 12.
-     34px puts the copy's floor at 594 and leaves 8px of air. */
-  padding-bottom: 34px;
+  /* 46dvh, not 45. The copy is bottom-anchored, so a cap below what the text
+     needs does not trim the tail — it pushes the head UP, out of the top of the
+     box and into the picture. Measured at 412x674: 284px of content against a
+     257px cap on nearly every text beat, the kicker landing at y=326 when the
+     box began at 371. The padding below gives back 22 of that; this gives the
+     last 5. The band's top edge lands at 54.3dvh, still inside the 45–55dvh
+     blend, so the 50/50 split holds. */
+  max-height: calc(50dvh - 46px);
+  padding-top: 8px;
+  /* Was 34px, to clear the beat number that used to sit at bottom:54 inside
+     this band. demo-slider.js reparented that number into the slider — it now
+     measures at 642..660, below this box's 628 floor — so the guard was
+     protecting against something that had moved out, at the cost of 22px from
+     every beat's copy. 12px leaves the text floor at 616, clear of the rail. */
+  padding-bottom: 10px;
 }
 /* `body.demo` in the selector is load-bearing: the existing index rule further
    down this file is also `html.demo-mobile #demoIndex`, identical specificity,
@@ -3889,6 +3903,62 @@ body.demo .demo-nogl-reason {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-3);
+}
+
+/* An empty element still has margins. `.demo-kind` carries the kind label on
+   the beats that name one and is left blank on the rest — where it stays
+   `display:block`, contributes no line box, and still reserves its 19px top and
+   8px bottom margin at the foot of the copy. That is the 27px the mobile sweep
+   reported as a clip on all thirty-eight states, at every cap I tried: the
+   number never moved because it was never the text. */
+html.demo-mobile .demo-copy > .demo-kind:empty { display: none !important; }
+/* AND WHEN IT IS OFF, which is the bigger half of the same bug. The element
+   fades with opacity and keeps its text between beats, so on the closing beat
+   it still held 103px of beat 11's line — invisible, fully laid out, and
+   enough to push the whole column 91px up out of the bottom half and over the
+   plant. It only showed in a full run; beat 12 shot on its own was clean,
+   which is why three passes at the cap never touched it.
+   Same treatment .demo-cta already gets four rules above, for the same reason:
+   on a half-screen, an invisible block still costs the text its room. */
+html.demo-mobile .demo-kind:not(.on) { display: none !important; }
+
+/* ── the last 42px, on beat 11 ──────────────────────────────────────────
+   Beat 11's text step is the only one that runs a two-line head, a nine-line
+   paragraph AND a live kind block at once: 315px of content into the 273px the
+   bottom half has after padding. Everything else already fits, so this is a
+   trim rather than a redesign — and it is taken from the leading and the gaps,
+   not from the type size of anything a reader is meant to read closely.
+
+   Measured, not guessed: the same beat is what says whether it worked. */
+html.demo-mobile .demo-body { font-size: 12px; line-height: 1.32; }
+html.demo-mobile .demo-kind {
+  font-size: 12px;
+  line-height: 1.32;
+  margin-top: 9px;
+}
+html.demo-mobile .demo-head { line-height: 1.02; }
+html.demo-mobile .demo-kicker { margin-bottom: 6px; }
+html.demo-mobile .demo-head { margin-bottom: 6px; }
+
+/* ── cards that have more in them than half a phone ─────────────────────
+   The SKU card lists eleven locations, the node explorer is a tree, the 2D
+   inspector has three sections. None of them fit 257px and none of them should
+   — the substance is at the top of each and the rest is detail. What was wrong
+   was the ENDING: the panel stopped dead mid-row, which reads as a broken
+   layout rather than as a list that continues.
+
+   A soft bottom edge says "there is more" in the way a hard cut cannot. Masked
+   rather than overlaid with a gradient: these are the application's own panels
+   and an injected ::after would land inside their scroll containers. */
+html.demo-mobile body.demo #nodeExplorer,
+html.demo-mobile body.demo #detailPanel,
+html.demo-mobile body.demo #skuCard,
+html.demo-mobile body.demo #inspector-2d,
+html.demo-mobile body.demo .popover {
+  -webkit-mask-image: linear-gradient(to bottom,
+    #000 0, #000 calc(100% - 30px), rgba(0, 0, 0, 0.15) 100%);
+  mask-image: linear-gradient(to bottom,
+    #000 0, #000 calc(100% - 30px), rgba(0, 0, 0, 0.15) 100%);
 }
 
 </style>
@@ -23592,14 +23662,21 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
         if (hit || !o.visible) return;
         if (o.isMesh && o.renderOrder === 999) hit = o;
       });
-      if (hit && hit.getWorldPosition) {
-        var T = window.__THREE__ || (typeof THREE !== 'undefined' ? THREE : null);
-        if (T && T.Vector3) {
-          var v = new T.Vector3();
-          hit.getWorldPosition(v);
+      /* STRAIGHT OFF THE WORLD MATRIX, no THREE constructor involved.
+         This asked for `new T.Vector3()` first and never got one: the app
+         publishes `window.__THREE__`, but the object it publishes has no
+         Vector3 on it, so the guard fell through and this returned null on
+         every card moment — the camera pointed at the plant's centre for the
+         whole walkthrough and no one saw an error. The translation is the last
+         column of matrixWorld; reading it needs nothing but the object. */
+      if (hit && hit.matrixWorld) {
+        if (hit.updateWorldMatrix) hit.updateWorldMatrix(true, false);
+        var e = hit.matrixWorld.elements;
+        if (e && e.length >= 15) {
+          var x = e[12], y = e[13], z = e[14];
           /* A selection parked at the origin is the app's "nothing selected"
              state, not a cell at 0,0,0 — the plant does not start there. */
-          if (v.x || v.y || v.z) selCache = { x: v.x, y: v.y, z: v.z };
+          if (x || y || z) selCache = { x: x, y: y, z: z };
         }
       }
     }
@@ -23729,6 +23806,22 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
      views are drawn into different elements — so the match is made in SCREEN
      space: the same scale in pixels, and the camera target landing on the same
      pixel. That holds whatever either element's rect turns out to be. */
+  /* WHERE THE PLAN'S SELECTED CELL IS, in the plan's own user space.
+     Taken from the SVG rather than from the 3D marker: getBBox already answers
+     in viewBox units, which is exactly what view2d wants, so there is no
+     world-to-tile conversion to get wrong and no scene traverse to pay for.
+     Also serves as the change signal — see tick2d. Null when no card is up. */
+  function mobileSelBox() {
+    if (!document.body.classList.contains('mob-card')) return null;
+    var svg = document.querySelector('#viewport-2d svg');
+    var el = svg && svg.querySelector('.svg-node.selected');
+    if (!el || !el.getBBox) return null;
+    var b;
+    try { b = el.getBBox(); } catch (e) { return null; }
+    if (!b || !(b.width > 0)) return null;
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  }
+
   function applyMirror(cs, snap) {
     /* ON A PHONE THE PLAN FRAMES THE PLANT, NOT THE CAMERA.
        Mirroring works by holding the 3D camera's framing, and that framing is
@@ -23747,9 +23840,73 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
        the canvas lift, and at 85x60 in a 412-wide viewBox the plant lands at
        about 262px tall inside a 284px band. */
     if (window.__demoMobile) {
-      var g = getGridCentre();
-      if (!g) return false;
-      view2d = { x: g.cx, y: g.cy, w: g.w * 1.12 };
+      /* EVERYTHING HERE IS IN THE PLAN'S OWN USER SPACE.
+         The plan draws into #obj-layer, centred on the origin — 85 x 60 running
+         x -42.5..42.4, y -30..29.9. getGridCentre answers in the ZONE's cell
+         space, which is the same size but starts at 0, so framing on g.cx/g.cy
+         put the plant half a plant up and to the left of where it belongs. It
+         was invisible while the whole-plant framing was wide enough to cover
+         the screen anyway, and obvious the moment anything zoomed in. */
+      var svgEl = document.querySelector('#viewport-2d svg');
+      var layer = svgEl && svgEl.querySelector('#obj-layer');
+      if (!layer && svgEl) {
+        var anyNode = svgEl.querySelector('.svg-node');
+        layer = anyNode && anyNode.parentNode;
+      }
+      var pb = null;
+      try { if (layer && layer.getBBox) pb = layer.getBBox(); } catch (e) { pb = null; }
+      if (!pb || !(pb.width > 0) || !(pb.height > 0)) {
+        /* Before the layer is drawn there is nothing to frame against, and
+           guessing would lock in a wrong framing that nothing later corrects.
+           tick2d calls this every frame, so the next one will have an answer. */
+        var g0 = getGridCentre();
+        if (!g0) return false;
+        view2d = { x: 0, y: 0, w: g0.w * 1.12 };
+        if (snap) { view2dNow = { x: view2d.x, y: view2d.y, w: view2d.w }; biasNow = 0; }
+        return true;
+      }
+
+      var pcx = pb.x + pb.width / 2, pcy = pb.y + pb.height / 2;
+      view2d = { x: pcx, y: pcy, w: pb.width * 1.12 };
+
+      /* EXCEPT WHEN A CARD IS UP. Then the plan's job is the same as the 3D
+         camera's: show the thing the card is about. At whole-plant framing a
+         cell is four pixels wide, so beats 03 and 04 read as a card floating
+         over an unrelated diagram.
+
+         0.45 of the plant, not a tight crop on the cell: the SKU beat's card
+         names eleven locations, and a crop showing one of them would answer a
+         question nobody asked. Just under half the plant puts the selected cell
+         at about eleven pixels — legible — while still saying where in the
+         building it sits. */
+      var msel = mobileSelBox();
+      if (msel) {
+        var vw = pb.width * 0.45;
+        var mx = msel.x, my = msel.y;
+
+        /* CLAMPED TO THE PLANT, so a cell on an outside row does not put the
+           plant's edge through the middle of the band with empty floor below.
+           The clamp needs the height the BAND shows, not the height the svg
+           holds: the svg is a full viewport tall and lifted, and only the slice
+           between the header and the midline is ever seen. Measured off the
+           live elements, so a taller header or a different split stays right. */
+        var sr = svgEl.getBoundingClientRect();
+        if (sr.width > 0 && sr.height > 0) {
+          var hdr = parseFloat(getComputedStyle(document.documentElement)
+                      .getPropertyValue('--demo-header-h')) || 53;
+          var visTop = Math.max(sr.top, hdr);
+          var visBot = Math.min(sr.bottom, window.innerHeight * 0.5);
+          var frac = Math.max(0.1, Math.min(1, (visBot - visTop) / sr.height));
+          var vh2 = vw * (sr.height / sr.width) * frac;
+
+          var xLo = pb.x + vw / 2, xHi = pb.x + pb.width - vw / 2;
+          var yLo = pb.y + vh2 / 2, yHi = pb.y + pb.height - vh2 / 2;
+          if (xLo <= xHi) mx = Math.min(xHi, Math.max(xLo, mx));
+          if (yLo <= yHi) my = Math.min(yHi, Math.max(yLo, my));
+        }
+        view2d = { x: mx, y: my, w: vw };
+      }
+
       if (snap) { view2dNow = { x: view2d.x, y: view2d.y, w: view2d.w }; biasNow = 0; }
       return true;
     }
@@ -23902,6 +24059,34 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
     var svg = document.querySelector('#viewport-2d svg');
     if (!svg) return;
     if (pendingMirror && applyMirror(pendingMirror, true)) pendingMirror = null;
+
+    /* THE PLAN RE-FRAMES WHEN THE CARD OPENS OR CLOSES.
+       applyMirror runs once, at the mode swap — so on a phone the plan was
+       framed while the beat was still text, and the card arriving a step later
+       changed nothing. Shot on its own, beat 04 reframed correctly; shot in
+       sequence it never did, which is exactly the difference between the swap
+       happening before or after the card.
+
+       On the CHANGE only, not every frame: the mobile branch walks the scene
+       for the selection, and doing that sixty times a second is the kind of
+       per-frame traverse this file removes elsewhere. view2dNow then eases to
+       the new framing on its own, so the reframe is a move rather than a cut. */
+    if (window.__demoMobile) {
+      /* EVERY FRAME, not on a change key. Two keys were tried — the card flag,
+         then the selected cell's position — and both left the plan framed on
+         something that was no longer true: the card flag missed beat 04
+         changing its selection without closing the card, and the position key
+         still fired while the object layer was mid-draw, locking in a framing
+         computed from an incomplete plan. Recomputing unconditionally is the
+         only version with no stale window in it.
+
+         The cost is one querySelector and one getBBox per frame, and only while
+         the plan is actually on screen — the 2D beats are four of thirteen, and
+         tick2d has already returned above for every 3D one. view2dNow still
+         eases, so the framing follows rather than snaps. */
+      if (D.camState) applyMirror(D.camState, false);
+    }
+
     if (!view2d) { view2dNow = null; return; }
     if (!view2dNow) {
       /* Open exactly on the requested framing rather than animating in. The
@@ -24623,6 +24808,20 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
        account, because a beat may be following a vehicle. Mutated in place; a
        fresh object a frame is the allocation pattern that buys a GC pause. */
     var aimNow = { x: 0, y: 0, z: 0 }, aimHas = false;
+
+    /* MOBILE CARD MOMENTS: how close the camera comes to what the card is
+       about. Pointing at the selection was not enough — the node was centred
+       and still one pixel of an eighty-five-column plant, which is what the
+       washed-out, nothing-is-happening look on beats 05 and 07 actually was.
+
+       0.42 was chosen against the frame, not the model: at the composed
+       distance the plant fills the top half, so a bit under half of it puts the
+       selected cell and the two aisles either side across the band — near
+       enough to read the highlight, wide enough to still say where in the plant
+       it is. Eased on the same time constant as the aim so the approach and the
+       swing are one move, and snapped together with it. */
+    var MOB_CLOSE = 0.42;
+    var closeK = 1, closeHas = false;
 
     /* Which state currently owns the narration, with hysteresis. Plain
        rounding flips exactly at the midpoint, so a reader stopped there would
@@ -25537,7 +25736,17 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
       }
       var tx = aimNow.x, ty = aimNow.y, tz = aimNow.z;
 
-      var az = s.az + driftAz, el = s.el, dist = R0 * s.r;
+      /* Comes in when the card is up, goes back out when it closes. Snapped on
+         the same condition as the aim, so a jump to a beat arrives already
+         framed rather than flying in afterwards. */
+      var wantClose = selp ? MOB_CLOSE : 1;
+      /* Its own flag: aimHas is already true by here — the aim block above
+         sets it on the very first frame — so testing it would never snap. */
+      if (!closeHas || snapNext) { closeK = wantClose; closeHas = true; }
+      else closeK += (wantClose - closeK) *
+                     (reduce ? 1 : (1 - Math.exp(-(dt / 1000) / TAU_AIM)));
+
+      var az = s.az + driftAz, el = s.el, dist = R0 * s.r * closeK;
       if (ctrl && ctrl.target) ctrl.target.set(tx, ty, tz);
       cam.position.set(
         tx + dist * Math.cos(el) * Math.cos(az),
