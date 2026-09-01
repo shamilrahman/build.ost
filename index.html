@@ -3223,9 +3223,9 @@ html.demo-mobile body.demo.mob-card .demo-copy {
   /* The bottom half is 45dvh (55→100). The card and this share it and must not
      overlap, so card 25 + copy 20 = 45 exactly: the card runs 55→80dvh and the
      text starts at 80dvh. 20dvh holds the kicker and a three-line step note. */
-  max-height: 20dvh;
-  padding-top: 6px;
-  padding-bottom: 30px;
+  max-height: 19dvh;
+  padding-top: 8px;
+  padding-bottom: 20px;
 }
 
 /* THE BLUR PLATE COMES OFF. DECISIONS.md calls it the single most expensive
@@ -3435,7 +3435,7 @@ html.demo-mobile body.demo #inspector-2d {
      it takes most of it. The remaining 15svh is the heading's, and 30+15 must
      leave the card's bottom edge ABOVE the heading's top: 55+30 = 85svh, and
      the heading starts at 85svh. They meet exactly and never overlap. */
-  max-height: 25dvh !important;
+  max-height: 19dvh !important;
   overflow: hidden !important;
   transform: none !important;
 }
@@ -3534,6 +3534,126 @@ html.demo-mobile body.demo #zonesPopover .zone-help { display: none !important; 
    LOCATION"; the location is the part that has to be visible. The plant's
    dimensions are already said in the narration at 01. */
 html.demo-mobile body.demo #inspector-2d #layout-info { display: none !important; }
+
+/* ── THE SCRUB SLIDER (phones only) ──────────────────────────────────────
+   Built by demo-slider.js. It writes window.scrollY and nothing else, so the
+   camera is still a function of scroll position — see the note in that file.
+
+   `pointer-events: auto` is the deliberate exception. Everything on this page
+   is inert by design (`body.demo > * { pointer-events: none }`), and the CTA
+   used to be the only thing allowed through. This is the second, and it is
+   allowed through for the same reason: the reader is meant to drive it. */
+html.demo-mobile #demoSlider {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: 46px;
+  z-index: 46;                       /* over the narration, under nothing */
+  pointer-events: auto !important;
+  padding: 0 clamp(16px, 5vw, 26px);
+  display: flex;
+  align-items: center;
+}
+
+/* The rail sits on the vertical centre of the band; everything else is
+   positioned against it. */
+html.demo-mobile #demoSlider .ds-rail {
+  position: absolute;
+  left: clamp(16px, 5vw, 26px); right: clamp(16px, 5vw, 26px);
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: rgba(var(--brand-rgb), 0.16);
+  border-radius: 2px;
+}
+html.demo-mobile #demoSlider .ds-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: var(--brand-blue);
+  border-radius: 2px;
+}
+
+/* One mark per state, taller at each beat's first state — thirteen chapters
+   legible without printing thirteen numbers. */
+html.demo-mobile #demoSlider .ds-ticks {
+  position: absolute;
+  left: clamp(16px, 5vw, 26px); right: clamp(16px, 5vw, 26px);
+  top: 50%;
+  height: 0;
+}
+html.demo-mobile #demoSlider .ds-tick {
+  position: absolute;
+  width: 1px;
+  height: 5px;
+  margin-top: -2.5px;
+  background: rgba(var(--brand-rgb), 0.22);
+  transform: translateX(-0.5px);
+}
+html.demo-mobile #demoSlider .ds-tick-beat {
+  height: 9px;
+  margin-top: -4.5px;
+  background: rgba(var(--brand-rgb), 0.38);
+}
+
+html.demo-mobile #demoSlider .ds-thumb {
+  position: absolute;
+  top: 50%;
+  width: 16px; height: 16px;
+  margin: -8px 0 0 0;
+  transform: translateX(-8px);
+  border-radius: 50%;
+  background: var(--brand-blue);
+  box-shadow: 0 1px 6px rgba(var(--brand-rgb), 0.35);
+  pointer-events: none;
+}
+
+/* The real control, laid transparent over the drawn one. Full height so the
+   touch target is the whole band, not a 2px line. */
+html.demo-mobile #demoSlider .ds-input {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  width: 100%; height: 100%;
+  margin: 0;
+  opacity: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  pointer-events: auto !important;
+}
+html.demo-mobile #demoSlider .ds-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 44px; height: 44px;        /* a thumb-sized target, not a dot */
+  border-radius: 50%;
+  background: transparent;
+}
+html.demo-mobile #demoSlider .ds-input::-moz-range-thumb {
+  width: 44px; height: 44px;
+  border: 0; border-radius: 50%;
+  background: transparent;
+}
+
+/* The narration ran to the bottom edge; the slider now owns that band, so the
+   card gives it back. The beat index moves above the rail for the same reason. */
+/* THE CARD ENDS ABOVE THE SLIDER — `bottom`, not padding.
+   Padding was tried first and was wrong: it shrinks the content box while the
+   element still reaches the screen edge, so the text had less room and, being
+   bottom-anchored, overflowed UPWARD into the card above it. Moving the whole
+   box up gives the slider its band without taking anything from the copy.
+
+   The caps come down to match. The bottom half is 45dvh; the slider now owns
+   46px of it, so the text moment gets 38dvh and a card moment 19dvh each — and
+   19 + 19 leaves the card's bottom edge just clear of the text's top. */
+html.demo-mobile .demo-copy {
+  bottom: 46px;
+  max-height: 38dvh;
+  padding-top: 10px;
+  padding-bottom: 22px;              /* clears the beat number, which sits at 54 */
+}
+/* `body.demo` in the selector is load-bearing: the existing index rule further
+   down this file is also `html.demo-mobile #demoIndex`, identical specificity,
+   and later in source order — so without the extra class it wins and the beat
+   number sits on the rail. */
+html.demo-mobile body.demo #demoIndex { bottom: 54px; }
 
 /* ── rail and index ── */
 /* The cue is a scroll invitation and the hero is the only place it is needed;
@@ -25317,6 +25437,163 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
     if (++tries > 600) { console.warn('[demo] application did not expose a camera'); return; }
     setTimeout(wait, 50);
   }());
+}());
+
+</script>
+<script>
+/* ==== demo slider ==== */
+/* DEMO SLIDER — a scrub bar along the bottom, on phones only.
+ *
+ * WHY. The track is 38 states over roughly 33,000px. On a desktop that is a few
+ * flicks of a wheel; on a phone it is a great deal of thumb, with no sense of
+ * how far in you are or how much is left. A slider makes the whole piece
+ * traversable at a glance and gives every state a mark you can aim at.
+ *
+ * IT DOES NOT BREAK THE PACING RULE, and that is the first thing to check
+ * against DECISIONS.md. The ban is on anything that decides WHEN the picture
+ * moves — a clock, a queue, a hold; all three were tried and all three failed.
+ * This is none of them. It writes `window.scrollY` and nothing else, so the
+ * camera is still interpolated directly from scroll position, with the same
+ * inertia, by the same code. It is a second input device for the existing
+ * mapping, not a second mapping.
+ *
+ * IT DOES CHANGE THE INTERACTION MODEL, which DECISIONS.md records: the CTA
+ * used to be the only live control on the page. Added at the user's request
+ * 2026-09-01; see the amendment in that file.
+ *
+ * A NATIVE <input type="range"> DOES THE TOUCH HANDLING. Rolling a custom
+ * drag from pointer events means reimplementing capture, slop, momentum and
+ * accessibility, all of which the platform already has and gets right on a
+ * phone. It is laid transparent over the drawn track; everything visible —
+ * the rail, the ticks, the thumb — is ours.
+ */
+(function () {
+  'use strict';
+
+  if (!window.__demoMobile) return;
+
+  var STEP_ATTEMPTS = 240;       /* ~2 minutes at 500ms — the loader alone is 15s */
+  var RES = 2000;                /* slider granularity; continuous, not per-state */
+
+  function ready(cb) {
+    var n = 0;
+    (function poll() {
+      if (window.__demo && window.__demo.ready && window.__demo.slots &&
+          window.__demo.slots.length) return cb();
+      if (++n > STEP_ATTEMPTS) return;
+      setTimeout(poll, 500);
+    }());
+  }
+
+  ready(function () {
+    var D = window.__demo;
+
+    /* The same unit the driver divides by. Asking for it rather than measuring
+       again means the slider cannot drift from the scroll mapping — if the URL
+       bar changes what a screen is worth, both see it at once. */
+    function unit() {
+      return (D.beatUnit ? D.beatUnit() : (window.innerHeight || 1)) || 1;
+    }
+    function maxScroll() {
+      return Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    }
+
+    /* ── build ──────────────────────────────────────────────────────────── */
+    var wrap = document.createElement('div');
+    wrap.id = 'demoSlider';
+    wrap.setAttribute('aria-hidden', 'false');
+
+    var rail = document.createElement('div');
+    rail.className = 'ds-rail';
+
+    var fill = document.createElement('i');
+    fill.className = 'ds-fill';
+    rail.appendChild(fill);
+
+    /* One mark per state. The first slot of a beat gets a taller one, so the
+       thirteen chapters read at a glance without printing thirteen numbers. */
+    var ticks = document.createElement('div');
+    ticks.className = 'ds-ticks';
+    var lastBeat = -1;
+    D.slots.forEach(function (sl) {
+      var t = document.createElement('i');
+      t.className = 'ds-tick' + (sl.b !== lastBeat ? ' ds-tick-beat' : '');
+      lastBeat = sl.b;
+      var y = Math.min(sl.y * unit(), maxScroll());
+      t.style.left = (100 * y / maxScroll()).toFixed(3) + '%';
+      t.dataset.y = String(y);
+      ticks.appendChild(t);
+    });
+
+    var thumb = document.createElement('i');
+    thumb.className = 'ds-thumb';
+
+    var input = document.createElement('input');
+    input.type = 'range';
+    input.min = '0';
+    input.max = String(RES);
+    input.step = '1';
+    input.value = '0';
+    input.className = 'ds-input';
+    input.setAttribute('aria-label', 'Walkthrough position');
+
+    wrap.appendChild(rail);
+    wrap.appendChild(ticks);
+    wrap.appendChild(thumb);
+    wrap.appendChild(input);
+    document.body.appendChild(wrap);
+
+    /* ── slider -> scroll ───────────────────────────────────────────────── */
+    var dragging = false;
+
+    function paint(frac) {
+      var pct = (100 * frac).toFixed(3) + '%';
+      fill.style.width = pct;
+      thumb.style.left = pct;
+    }
+
+    function fromInput() {
+      var frac = (+input.value) / RES;
+      /* The driver treats any non-zero scroll as a restore unless a real input
+         has been seen. This IS a real input, so say so — otherwise the reset
+         that runs on load can drag the reader back to the top mid-drag. */
+      window.__demoUserScrolled = true;
+      window.scrollTo(0, Math.round(frac * maxScroll()));
+      paint(frac);
+    }
+
+    input.addEventListener('input', fromInput);
+    input.addEventListener('pointerdown', function () { dragging = true; });
+    /* pointerup can land outside the element after a drag, so listen wide. */
+    window.addEventListener('pointerup', function () { dragging = false; }, true);
+    window.addEventListener('pointercancel', function () { dragging = false; }, true);
+
+    /* ── scroll -> slider ───────────────────────────────────────────────── */
+    var raf = 0;
+    function sync() {
+      raf = 0;
+      if (dragging) return;                 /* never fight the thumb */
+      var frac = Math.max(0, Math.min(1, window.scrollY / maxScroll()));
+      input.value = String(Math.round(frac * RES));
+      paint(frac);
+    }
+    window.addEventListener('scroll', function () {
+      if (!raf) raf = requestAnimationFrame(sync);
+    }, { passive: true });
+
+    /* The tick positions are derived from the scroll height, which changes when
+       the viewport does — an orientation turn, or the URL bar settling. */
+    window.addEventListener('resize', function () {
+      var m = maxScroll();
+      [].forEach.call(ticks.children, function (t, i) {
+        var y = Math.min(D.slots[i].y * unit(), m);
+        t.style.left = (100 * y / m).toFixed(3) + '%';
+      });
+      sync();
+    });
+
+    sync();
+  });
 }());
 
 </script>
