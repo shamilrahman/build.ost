@@ -3527,6 +3527,54 @@ html.demo-mobile body.demo #skuCard .sku-card-body { padding-block: 8px; }
    "Click to select · Dbl-click to focus". */
 html.demo-mobile body.demo #zonesPopover .zone-help { display: none !important; }
 
+/* ── the Task Creator, at phone width ────────────────────────────────────
+   Two things break it at 412px, both from being composed for a wide drawer.
+
+   The head is one flex row holding the title, the count, the arming message
+   and five buttons. At this width the title wrapped to two lines, the message
+   ("Click a STORAGE cell to set PICK") was cut mid-word by its own `nowrap`,
+   and the last button ran off the right edge. It wraps now, and the message
+   takes a line of its own rather than being truncated — it is the panel
+   telling the reader what the cursor is about to do, so losing its end is
+   losing the point.
+
+   The table is a six-column grid: 58px, two flexible, then 40 / 74 / 94px of
+   PRIO, STATUS and actions. That is ~306px of fixed width plus gaps inside a
+   ~380px card, which is why the headers collided into "PICKDROPPRIO". Mobile
+   keeps the three columns the beat is about — the task, its pick and its drop
+   — and drops priority, status and the per-row buttons, none of which the
+   narration mentions and the last of which the reader cannot press anyway. */
+html.demo-mobile body.demo #taskCreator .tc-head {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+html.demo-mobile body.demo #taskCreator .tc-title { white-space: nowrap; }
+html.demo-mobile body.demo #taskCreator .tc-actions {
+  width: 100%;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+html.demo-mobile body.demo #taskCreator .tc-arming {
+  white-space: normal;
+  width: 100%;
+  margin-right: 0;
+  line-height: 1.35;
+}
+html.demo-mobile body.demo #taskCreator .tc-table-head,
+html.demo-mobile body.demo #taskCreator .tc-row {
+  grid-template-columns: 50px minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 6px !important;
+}
+html.demo-mobile body.demo #taskCreator .tc-table-head > *:nth-child(n + 4),
+html.demo-mobile body.demo #taskCreator .tc-row > *:nth-child(n + 4) {
+  display: none !important;
+}
+/* The collapse chevron wrapped onto a row of its own and sat there orphaned.
+   It is operator chrome regardless — the reader cannot collapse a panel the
+   walkthrough is driving — so it goes, like the Explorer's click hints. */
+html.demo-mobile body.demo #taskCreator .tc-collapse { display: none !important; }
+
 /* The 2D inspector opens with a LAYOUT block — plant name, dimensions, grid
    size, node count. That is the same four facts on every step of beat 03, and
    it filled the card's whole height on a phone, pushing STORAGE CELL and the
