@@ -2789,6 +2789,24 @@ body.demo .ne-hint { display: none !important; }
    than a hope that none happens. */
 body.demo #toast { display: none !important; }
 
+/* THE 2D VIEWPORT HAS ITS OWN CONTROLS, AND THEY WERE NEVER HIDDEN.
+   `#viewControls2d` (zoom in / out / fit) and `#view2dBar` (the plan / heat /
+   slice segment switcher and the slice stepper) sit at the top of the 2D
+   viewport on a white 0.88 ground, under the header. `#viewportToolstrip` — the
+   3D equivalent, directly beside them — is in the hidden list above; these two
+   were simply missed, so every 2D beat has been showing operator controls the
+   reader cannot press.
+
+   That is the same rule the toolstrip, the drag/click hints and the Explorer's
+   footer are all held to: nothing may offer a control the walkthrough does not
+   drive. Hidden everywhere, not just on a phone — this has been shipping on
+   desktop too, where the wider frame made it read as part of the header.
+
+   Found by enumerating every element crossing the band under the header, after
+   three attempts to name it from the CSS were wrong. */
+body.demo #viewControls2d,
+body.demo #view2dBar { display: none !important; }
+
 /* Every piece of chrome starts hidden, addressed by its own selector because
    the driver has not run yet and nothing is tagged. Opacity rather than
    display, so revealing one can be a transition and nothing reflows.
