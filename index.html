@@ -3128,15 +3128,40 @@ html.demo-mobile .demo-cta { margin-top: 14px; }
    `.demo-kind` still carries the per-step line that changes as the cursor
    drives the panel. Beats with no panel keep every word — they already fit,
    with the plant holding 41-44% of the screen. */
-html.demo-mobile body.demo:has(.demo-panel.on:not(header)) .demo-body {
+/* ── TEXT MOMENT (the default) ───────────────────────────────────────────
+   The card is not on screen, so the narration has the whole lower half and is
+   read in full. Opacity rather than `display`, so the handover is the same
+   dissolve the panels already use and nothing reflows under it. */
+html.demo-mobile body.demo:not(.mob-card) .demo-panel:not(header) {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* ── CARD MOMENT ─────────────────────────────────────────────────────────
+   The panel is the evidence being discussed, so it takes the lower half and
+   the narration keeps only what identifies the moment — the kicker and the
+   heading. The body has already been read at step 0; the per-step line goes
+   too, because at this size it is the difference between the card showing its
+   rows and not. */
+html.demo-mobile body.demo.mob-card .demo-body,
+html.demo-mobile body.demo.mob-card .demo-kind {
   display: none;
 }
 
-/* With a card on screen the bottom half is shared: the card takes 55svh..77svh,
-   so the narration gets the 23svh beneath it. Without one it keeps the whole
-   45svh. Bottom-anchored either way, so the CTA stays against the lower edge. */
-html.demo-mobile body.demo:has(.demo-panel.on:not(header)) .demo-copy {
-  max-height: 23svh;
+/* On a card moment the lower half is the card's: it runs 55svh..87svh and the
+   narration keeps the 13svh beneath — enough for the kicker and a two-line
+   heading. On a text moment the card is gone and the narration keeps all 45svh.
+   Bottom-anchored either way, so the CTA stays against the lower edge. */
+html.demo-mobile body.demo.mob-card .demo-copy {
+  /* 15svh, and the padding comes down with it. The card's 74px of vertical
+     padding is composed for a full narration; inside a 13svh box it left 36px
+     for a kicker and a two-line heading, so the heading overflowed UPWARD —
+     bottom-anchored content spills up — and drew straight over the card, which
+     sits below it in the stacking order. Sized against the content that is
+     actually left on a card moment. */
+  max-height: 15svh;
+  padding-top: 6px;
+  padding-bottom: 30px;
 }
 
 /* THE BLUR PLATE COMES OFF. DECISIONS.md calls it the single most expensive
@@ -3200,9 +3225,13 @@ html.demo-mobile .demo-copy::before {
      line on screen and 100% is the 45svh line. Flat below, smoothstep across
      the band — a straight alpha ramp reads as a drawn edge over a moving
      picture. */
-  position: fixed;
-  left: 0; right: 0; bottom: 0; top: auto;
-  height: 55svh;
+  /* THE BAND ITSELF MOVED — see `body.demo > main::after` below. Kept here only
+     to switch the driver's desktop plate off. As a `::before` of the copy this
+     lived in the stage's z-index 35 subtree and painted OVER every card, which
+     sit inside `main` at z-index 0: the legend and the Explorer came out ghosted
+     while their computed opacity read 1. Beat 01's zone popover looked right
+     only because it lives in the header, at z-index 40. */
+  display: none;
   background: linear-gradient(to top,
     rgba(var(--demo-scrim), 0.985)  0%,
     rgba(var(--demo-scrim), 0.985) 78%,
@@ -3266,6 +3295,42 @@ html.demo-mobile body.demo #viewport-2d > svg {
   transform: translateY(-23svh);
 }
 
+/* ── THE BLEND BAND ─────────────────────────────────────────────────────
+   Attached to the picture, not to the text, so it sits BEHIND the cards.
+    is the stacking context the cards live in (they are children of
+   #viewport-3d, which is not itself positioned, so their z-index resolves
+   against main). This ::after takes z-index 1 — above the canvas, which has
+   none, and below every card, which sit at 12 and above. The narration is
+   outside main entirely, in the stage at z-index 35, so it still reads over
+   the top of this.
+
+   55svh tall: its top edge is the 45svh line. Flat opaque from the bottom to
+   82% of its own height — the 55svh line on screen — then a smoothstep to
+   nothing across the last 18%, which is the 45svh..55svh band, 5% either side
+   of the halfway line. A straight alpha ramp reads as a drawn edge over a
+   moving picture; this does not. */
+html.demo-mobile body.demo > main::after {
+  content: ;
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: 55svh;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(to top,
+    rgba(var(--demo-scrim), 0.985)  0%,
+    rgba(var(--demo-scrim), 0.985) 78%,
+    rgba(var(--demo-scrim), 0.975) 82%,
+    rgba(var(--demo-scrim), 0.940) 85%,
+    rgba(var(--demo-scrim), 0.870) 88%,
+    rgba(var(--demo-scrim), 0.750) 90.5%,
+    rgba(var(--demo-scrim), 0.590) 93%,
+    rgba(var(--demo-scrim), 0.410) 95%,
+    rgba(var(--demo-scrim), 0.245) 96.5%,
+    rgba(var(--demo-scrim), 0.120) 98%,
+    rgba(var(--demo-scrim), 0.040) 99%,
+    rgba(var(--demo-scrim), 0) 100%);
+}
+
 /* ── panels: upper band, never over the narration ── */
 /* `:not(header)` IS LOAD-BEARING. PANELS maps `header: 'header'`, so tagPanels()
    puts `.demo-panel` on the header too — and without the exclusion the rule
@@ -3302,7 +3367,11 @@ html.demo-mobile body.demo #inspector-2d {
      22svh leaves 23svh beneath it for the narration. */
   top: 55svh !important;
   bottom: auto !important;
-  max-height: 22svh !important;
+  /* 30svh — the card no longer shares the lower half with a full narration, so
+     it takes most of it. The remaining 15svh is the heading's, and 30+15 must
+     leave the card's bottom edge ABOVE the heading's top: 55+30 = 85svh, and
+     the heading starts at 85svh. They meet exactly and never overlap. */
+  max-height: 30svh !important;
   overflow: hidden !important;
   transform: none !important;
 }
@@ -24749,6 +24818,17 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
     /* Steps fire once on entry and are undone on the way out, so scrolling back
        up leaves the application exactly as it was found. */
     var stepKey = '';
+    /* The slot-level step index, set by the frame loop just before applyStep.
+       See the note at its assignment: applyStep's own `idx` is clamped to -1 for
+       any beat that drives itself from `kinds` rather than `steps`, so it cannot
+       decide the mobile text/card handover. The slot always knows. */
+    var rawStep = -1;
+    /* Whether the current state reveals a panel at all. Assembled inside
+       applyStep, which is the only place the beat's and step's reveal lists are
+       merged; read by the frame loop, which is the only place that runs on
+       every state. */
+    var mobHasCard = false;
+
     function applyStep(beatIdx, idx) {
       var key = beatIdx + ':' + idx;
       if (key === stepKey) return;
@@ -24766,6 +24846,42 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
         panels[pk].classList.toggle('on', rev.indexOf(pk) >= 0);
       }
       document.body.classList.toggle('labels', rev.indexOf('labels') >= 0);
+
+      /* ── MOBILE: THE TEXT AND THE CARD TAKE TURNS ──────────────────────
+         Portrait halves the screen — picture above, words below — and the
+         bottom half cannot hold a full narration AND a panel at a readable
+         size. Shown together, both were cramped and every card lost content off
+         its bottom edge.
+
+         They alternate instead, and the beats were already written for it:
+         step 0 states the claim and later steps demonstrate it on the panel.
+         01 says "every location becomes a typed node", THEN opens the importer.
+         04 describes type-to-filter, THEN "the card lists them all". 11 names
+         six transports, THEN runs the feed. So step 0 is the text moment — the
+         body copy is readable, and the card stands down — and every step after
+         it that reveals a panel is a card moment, where the panel takes the
+         bottom half and the narration keeps only its heading.
+
+         Every beat therefore gets its argument read exactly once, and the card
+         gets the whole lower half when it is the evidence being discussed. The
+         camera already moves per step, so the picture follows the handover
+         without anything new driving it.
+
+         `hasCard` looks for a revealed panel rather than trusting the step
+         index alone: `header` and `labels` come through the same list and are
+         not cards. Desktop is untouched — the class only ever goes on when the
+         mobile pass has run. */
+      /* The handover itself is set by the frame loop, NOT here — applyStep
+         memoises on `beatIdx + ':' + idx` and returns early when neither has
+         changed. For a beat driven from `kinds`, idx is -1 on every one of its
+         steps, so this function runs once and never again: beat 02 stayed on
+         whatever mode its first step chose. What it does contribute is the
+         panel list, which only it assembles. */
+      mobHasCard = false;
+      for (var ri = 0; ri < rev.length; ri++) {
+        var rk = rev[ri];
+        if (rk !== 'header' && rk !== 'labels' && panels[rk]) { mobHasCard = true; break; }
+      }
 
       /* The header's operator cluster is hidden throughout — but two beats have
          to press a control that lives in it. Exactly the one button each beat
@@ -24904,7 +25020,21 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
       /* The step is chosen by the slot, so it is already decided. */
       var steps = BEATS[s.eff].steps;
       var stepIdx = steps ? Math.min(steps.length - 1, Math.max(0, s.step)) : -1;
+      /* THE SLOT'S OWN STEP, kept for the mobile text/card handover.
+         `stepIdx` is -1 for any beat that drives itself from `kinds` rather than
+         `steps` — beat 02 is the whole of that case — so keying the handover off
+         it left 02 showing text on all five of its steps, which is precisely the
+         beat where the legend is the thing being talked about. The slot always
+         knows which step it is. */
+      rawStep = s.step;
       applyStep(s.eff, stepIdx);
+
+      /* THE TEXT/CARD HANDOVER, set here because this runs on every state while
+         applyStep does not. Step 0 states the beat's claim and the narration is
+         read in full; every step after it that reveals a panel hands the lower
+         half to that panel and keeps only the heading. */
+      document.body.classList.toggle('mob-card',
+        !!window.__demoMobile && rawStep >= 1 && mobHasCard);
 
       /* SETTLED = parked on a composed state and no longer moving.
 
