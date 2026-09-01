@@ -3664,10 +3664,15 @@ html.demo-mobile #demoSlider .ds-tick {
    has "Scroll to walk the plant" for the same reason: on a page with no visible
    scrollbar and one screen of content, nothing otherwise says there is more. */
 html.demo-mobile #demoSlider .ds-cue {
-  position: absolute;
+  /* ON THE SEAM, not above the rail. At `bottom: 100%` of the slider it sat at
+     y~614, and the copy band now runs to 618 — on the hero, whose copy is the
+     longest on the page, the cue printed straight through the last line. Fixed
+     to the viewport at the midline instead: that strip belongs to neither half,
+     it is empty floor in every hero framing, and the cue is the one thing on
+     the page that is about the boundary between picture and text. */
+  position: fixed;
   left: 0; right: 0;
-  bottom: 100%;
-  margin-bottom: 2px;
+  bottom: calc(50dvh + 6px);
   text-align: center;
   font-family: 'Poppins', sans-serif;
   font-weight: 500;
