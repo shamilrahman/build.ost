@@ -3433,6 +3433,14 @@ html.demo-mobile body.demo #skuCard,
 html.demo-mobile body.demo #zonesPopover,
 html.demo-mobile body.demo #livePopover,
 html.demo-mobile body.demo #detailPanel,
+/* #taskCreator BY ID, not by its class. The note above says it "obeyed the
+   class branch perfectly" — it did not. `body.demo #taskCreator { bottom:56px }`
+   near the top of this file is (1,1,0); the class branch is (0,4,2), and one id
+   outranks any number of classes, so the card kept a bottom edge as well as a
+   top one and stretched to fill the gap between them. On beat 10 that was
+   107px of empty white below the last row — the same failure the list was
+   written to catch, in the one panel the list left out. */
+html.demo-mobile body.demo #taskCreator,
 html.demo-mobile body.demo #inspector-2d {
   left: 8px !important;
   right: 8px !important;
@@ -3623,7 +3631,11 @@ html.demo-mobile #demoSlider {
    positioned against it. */
 html.demo-mobile #demoSlider .ds-rail {
   position: absolute;
-  left: clamp(16px, 5vw, 26px); right: 54px;   /* clears the beat number */
+  /* Clears the step button on the left and the button plus the beat number on
+     the right. The rail is the one box every other part measures against — see
+     the note on px() in demo-slider.js. */
+  left: calc(clamp(16px, 5vw, 26px) + 34px);
+  right: 88px;
   top: 50%;
   height: 2px;
   margin-top: -1px;
@@ -3642,7 +3654,10 @@ html.demo-mobile #demoSlider .ds-fill {
    legible without printing thirteen numbers. */
 html.demo-mobile #demoSlider .ds-ticks {
   position: absolute;
-  left: clamp(16px, 5vw, 26px); right: 54px;
+  /* Exactly the rail's box; the dots are then placed in px within it, in the
+     same space the thumb travels. */
+  left: calc(clamp(16px, 5vw, 26px) + 34px);
+  right: 88px;
   top: 50%;
   height: 0;
 }
@@ -3713,8 +3728,14 @@ html.demo-mobile #demoSlider .ds-thumb {
    touch target is the whole band, not a 2px line. */
 html.demo-mobile #demoSlider .ds-input {
   position: absolute;
-  left: 0; right: 0; top: 0;
-  width: 100%; height: 100%;
+  /* THE RAIL'S BOX, not the band's. Spanning the whole band meant the value the
+     finger set and the position the rail drew were different numbers, and it
+     also laid the transparent control on top of the step buttons, which then
+     could not be pressed at all. */
+  left: calc(clamp(16px, 5vw, 26px) + 34px);
+  right: 88px;
+  top: 0;
+  width: auto; height: 100%;
   margin: 0;
   opacity: 0;
   -webkit-appearance: none;
@@ -3809,11 +3830,32 @@ html.demo-mobile #demoIndex span.on {
   letter-spacing: 0.08em;
 }
 
-/* The cursor is a pointer metaphor. There is no pointer on a phone, and a ring
-   drifting across the screen with nothing driving it reads as a rendering bug
-   rather than as a demonstration. */
-html.demo-mobile #demoCursor,
-html.demo-mobile #demoRipple { display: none !important; }
+/* THE POINTER IS A TAP ON A PHONE, NOT A TRAVELLING RING.
+   It used to be hidden here outright, on the grounds that a phone has no
+   pointer and a ring gliding across the screen with nothing driving it reads as
+   a rendering bug. The first half of that still holds; the conclusion did not.
+   With it gone, a card opened, changed and closed with nothing anywhere saying
+   what had been pressed — the walkthrough's whole subject on beats 04 and 11 is
+   an interface being operated, and the operating was invisible.
+
+   So it comes back with the travel taken out. No transform transition: it
+   appears at the target rather than sliding to it, which is what a tap looks
+   like. The ripple — already a separate element so it cannot fight the ring —
+   does the rest, and demo-driver.js leaves it standing where it last pressed
+   instead of fading it, so arriving late at a state still shows what happened.
+
+   Slightly larger than the desktop ring: a fingertip is not a mouse point, and
+   at 26px over a busy card it read as a bullet rather than a press. */
+html.demo-mobile #demoCursor {
+  transition: opacity .2s ease !important;
+  width: 32px; height: 32px;
+  margin: -16px 0 0 -16px;
+  border-width: 2px;
+}
+html.demo-mobile #demoRipple {
+  width: 32px; height: 32px;
+  margin: -16px 0 0 -16px;
+}
 
 /* ── NO WEBGL ────────────────────────────────────────────────────────────
    The walkthrough cannot draw itself. Shown by demo-webgl-check.js, which
@@ -3965,6 +4007,48 @@ html.demo-mobile body.demo .popover {
   mask-image: linear-gradient(to bottom,
     #000 0, #000 calc(100% - 30px), rgba(0, 0, 0, 0.15) 100%);
 }
+
+
+/* ── the step buttons ─────────────────────────────────────────────────────
+   The exact control. 38 states across ~260px of rail is seven pixels a state,
+   which is enough to get near a beat and not enough to land on one; a reader
+   who knew the piece reported skipping several at a time. One press is one
+   state. 30px square, which is under the 44px touch guidance on its own but
+   sits in a 46px band that is entirely theirs — the pressable area is the full
+   height of the band. */
+html.demo-mobile #demoSlider .ds-btn {
+  position: absolute;
+  top: 0;
+  width: 30px;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--brand-blue);
+  font-family: 'Poppins', sans-serif;
+  font-size: 19px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto !important;
+  -webkit-tap-highlight-color: transparent;
+}
+html.demo-mobile #demoSlider .ds-btn span {
+  display: block;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: rgba(var(--brand-rgb), 0.10);
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s ease, transform .15s ease;
+}
+html.demo-mobile #demoSlider .ds-btn:active span {
+  background: rgba(var(--brand-rgb), 0.22);
+  transform: scale(0.92);
+}
+html.demo-mobile #demoSlider .ds-btn-prev { left: clamp(16px, 5vw, 26px); }
+html.demo-mobile #demoSlider .ds-btn-next { right: 54px; }
 
 </style>
 </head>
@@ -23362,12 +23446,61 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
 
   /* Centre of an element in viewport coordinates, or null if it is not on
      screen — a panel that has not opened yet, a row that has not rendered. */
+  /* BRING THE TARGET INTO THE CARD BEFORE POINTING AT IT.
+     On a phone a panel gets 257px and its content is routinely twice that: the
+     Explorer's SKU tree, the live drawer's shuttle rows, the inspector's lower
+     sections. The walkthrough still clicked the right element — the application
+     did the right thing — but the row was below the card's fold, so the pointer
+     went to a place the reader could not see and the card appeared to react to
+     nothing. Beats 04 and 11 are the two worst.
+
+     So the panel is scrolled to put the target on its centre line first, and the
+     pointer is told where the target WILL be. Smooth, and it starts ~620ms
+     before the pointer arrives, so the card settles and then the pointer lands.
+
+     `hidden` counts as scrollable: it clips its content and still moves under
+     scrollTop, and several of these panels clip on the outside and scroll on an
+     inner list. Desktop is untouched — nothing there is cut. */
+  function revealShift(el) {
+    if (!window.__demoMobile) return 0;
+    var p = el.parentElement, sc = null;
+    while (p && p !== document.body && p !== document.documentElement) {
+      /* NEVER THE PAGE HEADER. It reports 576px of internal overflow — the
+         hidden operator cluster is still in its scroll box — so a beat that
+         points at a header button, which beats 01 and 11 both open with, would
+         have scrolled the brand and the toolstrip out of the frame to "reveal"
+         a control that was never hidden. Nothing above a panel is scrollable
+         on purpose here. */
+      if (p.tagName === 'HEADER') return 0;
+      if (p.scrollHeight > p.clientHeight + 2) {
+        var ov = getComputedStyle(p).overflowY;
+        if (ov === 'auto' || ov === 'scroll' || ov === 'hidden' || ov === 'overlay') {
+          sc = p; break;
+        }
+      }
+      p = p.parentElement;
+    }
+    if (!sc) return 0;
+    var pr = sc.getBoundingClientRect(), er = el.getBoundingClientRect();
+    var want = sc.scrollTop + (er.top + er.height / 2) - (pr.top + pr.height / 2);
+    want = Math.max(0, Math.min(sc.scrollHeight - sc.clientHeight, want));
+    var shift = want - sc.scrollTop;
+    if (Math.abs(shift) < 2) return 0;
+    try { sc.scrollTo({ top: want, behavior: 'smooth' }); }
+    catch (e) { sc.scrollTop = want; }
+    return shift;
+  }
+
   function centreOf(sel) {
     var el = typeof sel === 'string' ? document.querySelector(sel) : sel;
     if (!el) return null;
+    /* Requested before the rect is read, and the rect is then corrected by the
+       shift — a smooth scroll has not moved anything yet at this instant, and
+       the pointer needs the position it is travelling to, not the one it left. */
+    var shift = revealShift(el);
     var r = el.getBoundingClientRect();
     if (!(r.width > 0) || !(r.height > 0)) return null;
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2, el: el };
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 - shift, el: el };
   }
 
   /* ═══════════════════════════════════════════════════════ EXPLODE ═══
@@ -23658,6 +23791,28 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
 
      Cached per frame: the scene is walked once, not once per aim() call, and
      aim() is called twice a frame for the two interpolated endpoints. */
+  /* IS THE CARD ON SCREEN ABOUT A LOCATION?
+     The pull-in and the plan's zoom both frame on the selection, and both were
+     firing on any card at all — the scene keeps a selection marker alive from
+     whenever one was last set, so beat 01's Zones popover, which is about
+     zones, drove the camera onto a rack corner with half the frame empty floor.
+
+     Only three panels describe a node: the 3D detail card, the 2D inspector and
+     the stock card. A legend, a zones popover, a task list and a live drawer
+     are about something else, and they keep the beat's composed framing. */
+  var NODE_CARDS = ['#detailPanel', '#inspector-2d', '#skuCard'];
+  function cardIsAboutNode() {
+    if (!window.__demoMobile) return false;
+    if (!document.body.classList.contains('mob-card')) return false;
+    for (var i = 0; i < NODE_CARDS.length; i++) {
+      var el = document.querySelector(NODE_CARDS[i]);
+      if (!el) continue;
+      var r = el.getBoundingClientRect();
+      if (r.height > 2 && +getComputedStyle(el).opacity > 0.5) return true;
+    }
+    return false;
+  }
+
   function selectionPos() {
     var selCache = null;
     var sc = window.__scene;
@@ -23817,7 +23972,7 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
      world-to-tile conversion to get wrong and no scene traverse to pay for.
      Also serves as the change signal — see tick2d. Null when no card is up. */
   function mobileSelBox() {
-    if (!document.body.classList.contains('mob-card')) return null;
+    if (!cardIsAboutNode()) return null;
     var svg = document.querySelector('#viewport-2d svg');
     var el = svg && svg.querySelector('.svg-node.selected');
     if (!el || !el.getBBox) return null;
@@ -25000,8 +25155,17 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
         if (gen !== curGen) return;
         if (i >= actions.length) {
           /* Fade the pointer out once the sequence is done — it is a
-             demonstration, not a permanent overlay. */
-          schedule(function () { cursorHide(ui); }, 900);
+             demonstration, not a permanent overlay.
+
+             EXCEPT ON A PHONE, where it stays where it last pressed. A reader
+             scrolls or slides into a state, and the sequence plays and clears
+             itself inside two seconds; arrive a moment late — which a slider
+             makes easy — and the card has changed with nothing left to say what
+             changed it. On a desktop the pointer is a flourish over a picture
+             you were already watching; on a phone it is the only evidence.
+             A step with no script of its own still cancels it, so it is never
+             left pointing at a card that has gone. */
+          if (!window.__demoMobile) schedule(function () { cursorHide(ui); }, 900);
           return;
         }
         var a = actions[i++];
@@ -25688,9 +25852,7 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
       /* Resolved here for the same reason `sp` is: aim() runs twice a frame and
          this walks the scene. Only asked for when a card is actually up on a
          phone, so desktop pays nothing at all. */
-      var selp = (window.__demoMobile &&
-                  document.body.classList.contains('mob-card'))
-                 ? selectionPos() : null;
+      var selp = cardIsAboutNode() ? selectionPos() : null;
 
       /* Where the camera is pointed. Normally the plant's centre; a step may
          name a moving subject instead, and the two are blended so the swing
@@ -25949,16 +26111,41 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
 
     var ticks = document.createElement('div');
     ticks.className = 'ds-ticks';
-    marks.forEach(function (sl) {
+    marks.forEach(function () {
       var t = document.createElement('i');
       t.className = 'ds-tick ds-tick-beat';
-      var y = Math.min(sl.y * unit(), maxScroll());
-      t.style.left = (100 * y / maxScroll()).toFixed(3) + '%';
-      ticks.appendChild(t);
+      ticks.appendChild(t);          /* placed by layoutTicks, once measurable */
+      return t;
     });
 
     var thumb = document.createElement('i');
     thumb.className = 'ds-thumb';
+
+    /* STEP BUTTONS. The slider is the only way through the piece on a phone,
+       and the whole walkthrough — 38 states over ~26,000px — is compressed into
+       about 260px of rail. That is seven pixels a state: a slider can put you
+       roughly where you want, and it cannot put you on a particular beat. A
+       reader who knows the piece and wants the next thing to happen had no way
+       to ask for exactly that, and reported skipping several at a time.
+
+       These are the exact control. One press is one state — the next thing the
+       walkthrough does — never a beat, because the steps within a beat are
+       where the cursor actually clicks anything. */
+    function mkBtn(dir, label, glyph) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'ds-btn ds-btn-' + (dir < 0 ? 'prev' : 'next');
+      b.setAttribute('aria-label', label);
+      b.innerHTML = '<span>' + glyph + '</span>';
+      b.addEventListener('click', function (e) {
+        e.preventDefault();
+        hint(false);
+        stepBy(dir);
+      });
+      return b;
+    }
+    var prevBtn = mkBtn(-1, 'Previous step', '&#8249;');
+    var nextBtn = mkBtn(1, 'Next step', '&#8250;');
 
     var input = document.createElement('input');
     input.type = 'range';
@@ -25979,11 +26166,13 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
     cue.className = 'ds-cue';
     cue.innerHTML = '<span>Slide to walk the plant &rarr;</span>';
 
+    wrap.appendChild(prevBtn);
     wrap.appendChild(rail);
     wrap.appendChild(ticks);
     wrap.appendChild(thumb);
     wrap.appendChild(cue);
     wrap.appendChild(input);
+    wrap.appendChild(nextBtn);
     document.body.appendChild(wrap);
 
     /* THE BEAT NUMBER MOVES INTO THE SLIDER BAND.
@@ -26012,10 +26201,86 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
     /* ── slider -> scroll ───────────────────────────────────────────────── */
     var dragging = false;
 
+    /* ── ONE COORDINATE SYSTEM ────────────────────────────────────────────
+       There were three, and they disagreed. The native input spanned the whole
+       band; the drawn rail was inset 26 on the left and 54 on the right for the
+       beat number; the drawn thumb was positioned against the band, not the
+       rail. On top of that a native range thumb is 44px wide, so its CENTRE
+       only ever travels from left+22 to right-22 — the finger, the drawn thumb
+       and the scroll position were three different answers, worst at the ends.
+
+       So everything is now derived from one measurement: the rail's box, minus
+       half a thumb at each end. `px()` is the only place that conversion
+       lives, and the ticks, the fill and the thumb all go through it. */
+    var THUMB = 44;
+    function railGeom() {
+      var rw = rail.clientWidth || 1;
+      return { left: rail.offsetLeft, span: Math.max(1, rw - THUMB), pad: THUMB / 2 };
+    }
+    function px(frac) {
+      var g = railGeom();
+      return g.pad + frac * g.span;
+    }
+
+    /* Placed in the same pixels the thumb travels in, via px(). As
+       percentages of the rail they sat up to 22px away from the position the
+       thumb reaches for the same scroll — the dots did not mark where the
+       control could actually stop.
+
+       `marks`, not `D.slots`: the ticks are one per beat, so indexing the full
+       slot table here would put every mark in the wrong place. */
+    function layoutTicks() {
+      var m = maxScroll(), u = unit();
+      [].forEach.call(ticks.children, function (t, i) {
+        if (!marks[i]) return;
+        var y = Math.min(marks[i].y * u, m);
+        t.style.left = px(y / m).toFixed(1) + 'px';
+      });
+    }
+
     function paint(frac) {
-      var pct = (100 * frac).toFixed(3) + '%';
-      fill.style.width = pct;
-      thumb.style.left = pct;
+      var g = railGeom();
+      var x = g.pad + frac * g.span;
+      fill.style.width = x.toFixed(1) + 'px';
+      thumb.style.left = (g.left + x).toFixed(1) + 'px';
+    }
+
+    /* ── SNAP TO STATES ───────────────────────────────────────────────────
+       Every state is a composed picture with its own camera, panels and cursor
+       sequence; the positions between two of them are nothing the piece was
+       ever authored for. Snapping makes the drag a set of detents rather than a
+       smear, so a slow drag steps one state at a time and the thumb cannot come
+       to rest on a picture nobody designed.
+
+       All 38 slots, not the 13 beat marks: the steps within a beat are where
+       the cursor actually clicks anything, and a slider that only stopped on
+       chapter openings would skip every demonstration in the piece. */
+    function slotYs() {
+      var u = unit(), m = maxScroll();
+      return D.slots.map(function (sl) { return Math.min(sl.y * u, m); });
+    }
+    function nearestSlot(y) {
+      var ys = slotYs(), best = 0, bd = Infinity;
+      for (var i = 0; i < ys.length; i++) {
+        var d = Math.abs(ys[i] - y);
+        if (d < bd) { bd = d; best = i; }
+      }
+      return best;
+    }
+    function goToSlot(i) {
+      var ys = slotYs();
+      if (!ys.length) return;
+      i = Math.max(0, Math.min(ys.length - 1, i));
+      window.__demoUserScrolled = true;
+      window.scrollTo(0, Math.round(ys[i]));
+      var f = ys[i] / maxScroll();
+      input.value = String(Math.round(f * RES));
+      paint(f);
+    }
+    function stepBy(dir) {
+      /* From where the reader IS, not from where the thumb was last painted —
+         they may have scrolled with a finger since. */
+      goToSlot(nearestSlot(window.scrollY) + dir);
     }
 
     function fromInput() {
@@ -26024,8 +26289,7 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
          has been seen. This IS a real input, so say so — otherwise the reset
          that runs on load can drag the reader back to the top mid-drag. */
       window.__demoUserScrolled = true;
-      window.scrollTo(0, Math.round(frac * maxScroll()));
-      paint(frac);
+      goToSlot(nearestSlot(frac * maxScroll()));
     }
 
     input.addEventListener('input', fromInput);
@@ -26055,18 +26319,9 @@ window.__ASRS_ZONES__ = [{"id":"demo","name":"Demo","source":"demo.json","cells"
 
     /* The tick positions are derived from the scroll height, which changes when
        the viewport does — an orientation turn, or the URL bar settling. */
-    window.addEventListener('resize', function () {
-      var m = maxScroll();
-      [].forEach.call(ticks.children, function (t, i) {
-        /* `marks`, not `D.slots` — the ticks are one per beat now, so indexing
-           the full slot table here would put every mark in the wrong place
-           after a rotation. */
-        var y = Math.min(marks[i].y * unit(), m);
-        t.style.left = (100 * y / m).toFixed(3) + '%';
-      });
-      sync();
-    });
+    window.addEventListener('resize', function () { layoutTicks(); sync(); });
 
+    layoutTicks();
     sync();
   });
 }());
